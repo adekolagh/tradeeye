@@ -439,6 +439,47 @@ canvas { display: none; }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* ── CALCULATOR STYLES ── */
+.calc-card {
+  background:#fff; border-radius:20px; padding:20px 16px;
+  margin-bottom:14px; box-shadow:0 1px 8px rgba(0,0,0,0.08);
+}
+.calc-sec {
+  font-size:11px; font-weight:800; color:#9ca3af;
+  text-transform:uppercase; letter-spacing:2px; margin-bottom:16px;
+  font-family:'Rajdhani',sans-serif;
+}
+.calc-lbl {
+  display:block; font-size:11px; font-weight:800; color:#9ca3af;
+  text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px;
+  font-family:'Rajdhani',sans-serif;
+}
+.calc-inp {
+  width:100%; padding:13px 14px; font-size:15px; font-weight:700;
+  background:#fff; border:2px solid #e5e7eb; border-radius:12px;
+  color:#111; outline:none; box-sizing:border-box;
+  font-family:'JetBrains Mono',monospace;
+  -webkit-appearance:none; appearance:none;
+}
+.calc-inp:focus { border-color:#3b82f6; }
+.price-box {
+  border-width:1.5px; border-style:solid; border-radius:14px;
+  padding:14px 10px; text-align:center;
+}
+.tf-pill {
+  padding:10px 13px; border-radius:10px; cursor:pointer;
+  font-size:13px; font-weight:800; transition:all 0.15s;
+  min-width:50px; border:1.5px solid #e5e7eb;
+  background:#fff; color:#6b7280; font-family:'Rajdhani',sans-serif;
+}
+.tf-pill.active {
+  border:none; background:#0f172a; color:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
+.calc-stat {
+  background:#f8fafc; border-radius:12px; padding:14px 10px; text-align:center;
+}
+
 /* DESKTOP */
 @media (min-width: 768px) {
   html, body { overflow: auto; height: auto; min-height: 100vh; }
@@ -451,6 +492,7 @@ canvas { display: none; }
     max-height: calc(100vh - 58px);
   }
   #formPanel { width: 380px; flex-shrink: 0; max-height: calc(100vh - 58px); }
+  #calcPanel { width: 400px; flex-shrink: 0; max-height: calc(100vh - 58px); }
   .toast { bottom: 24px; }
 }
 </style>
@@ -473,9 +515,10 @@ canvas { display: none; }
 
   <!-- TAB BAR (mobile) -->
   <div class="tab-bar">
-    <button class="tab active" id="tabCam"  onclick="showPanel('camera')">📷 Camera</button>
+    <button class="tab active" id="tabCam"  onclick="showPanel('camera')">📷 Cam</button>
     <button class="tab"        id="tabUp"   onclick="showPanel('upload')">🖼 Upload</button>
     <button class="tab"        id="tabForm" onclick="showPanel('form')">📋 Fields</button>
+    <button class="tab"        id="tabCalc" onclick="showPanel('calc')">🧮 Calc</button>
   </div>
 
   <!-- CAMERA PANEL -->
@@ -655,6 +698,152 @@ canvas { display: none; }
     </div>
   </div>
 
+  <!-- CALCULATOR PANEL -->
+  <div class="panel" id="calcPanel" style="overflow-y:auto; background:#f1f5f9;">
+
+    <!-- TradeEye banner — shown when data arrives from scanner -->
+    <div id="calcBanner" style="display:none; margin:14px 14px 0; background:linear-gradient(135deg,#0f172a,#1e293b); border-radius:16px; padding:14px 16px; border:1.5px solid #3b82f6;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">📡</span>
+          <div>
+            <div style="font-size:11px; font-weight:800; color:#60a5fa; letter-spacing:1px; font-family:'Rajdhani',sans-serif;">FROM TRADEEYE SCANNER</div>
+            <div id="bannerTxt" style="font-size:13px; font-weight:900; color:#f8fafc; font-family:'Rajdhani',sans-serif;">Data pre-filled ✓</div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('calcBanner').style.display='none'"
+          style="background:transparent; border:none; color:#64748b; font-size:18px; cursor:pointer; padding:4px 8px;">✕</button>
+      </div>
+      <div style="margin-top:6px; font-size:11px; font-weight:600; color:#94a3b8; font-family:'JetBrains Mono',monospace;">Select BUY or SELL, set lot size + balance → calculate</div>
+    </div>
+
+    <div style="max-width:480px; margin:0 auto; padding:14px;">
+
+      <!-- TRADE SETUP CARD -->
+      <div class="calc-card">
+        <div class="calc-sec">Trade Setup</div>
+
+        <!-- Timeframe pills -->
+        <div style="margin-bottom:16px;">
+          <label class="calc-lbl">Timeframe</label>
+          <div id="tfPills" style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px;"></div>
+          <div id="tfContext" style="padding:10px 14px; background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:10px; display:flex; gap:10px; align-items:flex-start;">
+            <div id="tfBadge" style="background:#2563eb; color:#fff; font-size:12px; font-weight:900; padding:4px 10px; border-radius:8px; flex-shrink:0; margin-top:1px; font-family:'Rajdhani',sans-serif;">5M</div>
+            <div>
+              <div id="tfLabel" style="font-size:12px; font-weight:800; color:#0369a1; margin-bottom:2px; font-family:'Rajdhani',sans-serif;">5 Minute Chart</div>
+              <div id="tfCtx" style="font-size:11px; font-weight:600; color:#0c4a6e; font-family:'JetBrains Mono',monospace;">Scalp — SL 5-15 pips typical.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pair -->
+        <div style="margin-bottom:12px;">
+          <label class="calc-lbl">Instrument / Pair</label>
+          <select id="c_pair" class="calc-inp" onchange="calcPairChanged()"></select>
+          <div id="pairNote" style="display:none; padding:10px 14px; border-radius:10px; margin-top:8px;">
+            <div id="pairNoteText" style="font-size:12px; font-weight:700; line-height:1.5;"></div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label class="calc-lbl">Direction</label>
+            <select id="c_dir" class="calc-inp" style="color:#6b7280;" onchange="calcUpdate()">
+              <option value="">Select</option>
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+            </select>
+          </div>
+          <div>
+            <label class="calc-lbl">Entry Price</label>
+            <input id="c_entry" class="calc-inp" type="number" step="any" placeholder="0.00" inputmode="decimal" oninput="calcUpdate()">
+          </div>
+          <div>
+            <label class="calc-lbl">Balance ($)</label>
+            <input id="c_balance" class="calc-inp" type="number" step="any" placeholder="1000" value="1000" inputmode="decimal" oninput="calcUpdate()">
+          </div>
+          <div>
+            <label class="calc-lbl">Lot Size</label>
+            <select id="c_lot" class="calc-inp" onchange="calcUpdate()">
+              <option>0.001</option><option>0.01</option><option selected>0.02</option>
+              <option>0.03</option><option>0.05</option><option>0.10</option>
+              <option>0.20</option><option>0.50</option><option>1.00</option>
+              <option>2.00</option><option>5.00</option>
+            </select>
+          </div>
+          <div>
+            <label class="calc-lbl">Leverage</label>
+            <select id="c_lev" class="calc-inp" onchange="calcUpdate()">
+              <option>10</option><option>20</option><option>30</option><option>50</option>
+              <option>100</option><option selected>200</option><option>400</option>
+              <option>500</option><option>1000</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- INDICATORS CARD -->
+      <div class="calc-card">
+        <div id="calcIndSec" class="calc-sec">Wilder Indicators — 5M Chart</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div><label class="calc-lbl">ATR</label>
+            <input id="c_atr" class="calc-inp" type="number" step="any" placeholder="0.00041" inputmode="decimal" oninput="calcUpdate()"></div>
+          <div><label class="calc-lbl">Parabolic SAR</label>
+            <input id="c_sar" class="calc-inp" type="number" step="any" placeholder="0.71189" inputmode="decimal" oninput="calcUpdate()"></div>
+          <div><label class="calc-lbl">ADX</label>
+            <input id="c_adx" class="calc-inp" type="number" step="any" placeholder="22.56" inputmode="decimal" oninput="calcUpdate()"></div>
+          <div><label class="calc-lbl">+DI</label>
+            <input id="c_pdi" class="calc-inp" type="number" step="any" placeholder="32.26" inputmode="decimal" oninput="calcUpdate()"></div>
+          <div><label class="calc-lbl">-DI</label>
+            <input id="c_ndi" class="calc-inp" type="number" step="any" placeholder="14.03" inputmode="decimal" oninput="calcUpdate()"></div>
+          <div><label class="calc-lbl">RSI</label>
+            <input id="c_rsi" class="calc-inp" type="number" step="any" placeholder="73.43" inputmode="decimal" oninput="calcUpdate()"></div>
+        </div>
+      </div>
+
+      <!-- VALIDATION -->
+      <div id="validCard" class="calc-card" style="display:none;">
+        <div class="calc-sec" id="validSec">Wilder Rule Check</div>
+        <div id="validChecks" style="display:flex; flex-direction:column; gap:8px;"></div>
+        <div id="validResult" style="margin-top:12px; padding:14px 16px; border-radius:14px; text-align:center;"></div>
+      </div>
+
+      <!-- RESULTS -->
+      <div id="tradeHeader" style="display:none; border-radius:18px; padding:18px 20px; text-align:center; margin-bottom:14px;">
+        <div id="tradeHeaderSub" style="font-size:10px; font-weight:800; color:rgba(255,255,255,0.6); letter-spacing:3px; margin-bottom:4px; font-family:'Rajdhani',sans-serif;"></div>
+        <div id="tradeHeaderMain" style="font-size:28px; font-weight:900; color:#fff; font-family:'Rajdhani',sans-serif;"></div>
+        <div id="tradeHeaderEntry" style="font-size:13px; font-weight:700; color:rgba(255,255,255,0.8); margin-top:6px; font-family:'JetBrains Mono',monospace;"></div>
+      </div>
+
+      <div id="levelsCard" class="calc-card" style="display:none;">
+        <div id="levelsSec" class="calc-sec">Trade Levels</div>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+          <div id="slBox" class="price-box" style="flex:1; border-color:#fca5a5; background:#fef2f2; color:#dc2626;"></div>
+          <div id="tp1Box" class="price-box" style="flex:1; border-color:#86efac; background:#f0fdf4; color:#16a34a;"></div>
+        </div>
+        <div id="tp2Box" style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:14px; padding:14px 12px; text-align:center;"></div>
+        <div id="levelsNotes"></div>
+      </div>
+
+      <div id="statsCard" class="calc-card" style="display:none;">
+        <div class="calc-sec">Account Stats</div>
+        <div id="statsGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;"></div>
+        <div id="statsNotes"></div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="calcEmpty" class="calc-card" style="text-align:center; padding:40px 20px;">
+        <div style="font-size:44px; margin-bottom:14px;">🧮</div>
+        <div style="font-size:16px; font-weight:800; color:#374151; margin-bottom:8px; font-family:'Rajdhani',sans-serif;">Select timeframe, pair and fill in all values</div>
+        <div style="font-size:13px; font-weight:500; color:#9ca3af; font-family:'JetBrains Mono',monospace;">SL, TP and full Wilder analysis will appear here</div>
+      </div>
+
+      <div style="text-align:center; font-size:11px; font-weight:600; color:#9ca3af; padding:16px 0 20px; font-family:'JetBrains Mono',monospace;">
+        Based on Welles Wilder — New Concepts in Technical Trading Systems (1978)
+      </div>
+    </div>
+  </div>
+
 </div><!-- /app-body -->
 <div class="toast" id="toast"></div>
 
@@ -700,8 +889,8 @@ canvas { display: none; }
   }
 
   function showPanel(name) {
-    const panels = { camera:'cameraPanel', upload:'uploadPanel', form:'formPanel' };
-    const tabs   = { camera:'tabCam',      upload:'tabUp',       form:'tabForm'  };
+    const panels = { camera:'cameraPanel', upload:'uploadPanel', form:'formPanel', calc:'calcPanel' };
+    const tabs   = { camera:'tabCam',      upload:'tabUp',       form:'tabForm',   calc:'tabCalc'  };
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(panels[name]).classList.add('active');
@@ -1089,6 +1278,336 @@ Return ONLY the JSON object with no other text.`,
     window.open(url, '_blank');
     toast('🚀 Opening calculator…');
   }
+
+  // ══════════════════════════════════════════════
+  // ── WILDER CALCULATOR ENGINE ──────────────────
+  // ══════════════════════════════════════════════
+
+  const C_INSTRUMENTS = {
+    'EURUSD':{cat:'Majors',pm:10000,pv:0.10,dec:5},'GBPUSD':{cat:'Majors',pm:10000,pv:0.10,dec:5},
+    'AUDUSD':{cat:'Majors',pm:10000,pv:0.10,dec:5},'NZDUSD':{cat:'Majors',pm:10000,pv:0.10,dec:5},
+    'USDCAD':{cat:'Majors',pm:10000,pv:0.10,dec:5},'USDCHF':{cat:'Majors',pm:10000,pv:0.10,dec:5},
+    'USDJPY':{cat:'Majors',pm:100,pv:0.07,dec:3,jpy:true},
+    'EURGBP':{cat:'Minors',pm:10000,pv:0.10,dec:5},'EURJPY':{cat:'Minors',pm:100,pv:0.07,dec:3,jpy:true},
+    'EURCAD':{cat:'Minors',pm:10000,pv:0.10,dec:5},'EURAUD':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'EURNZD':{cat:'Minors',pm:10000,pv:0.10,dec:5},'EURCHF':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'GBPJPY':{cat:'Minors',pm:100,pv:0.07,dec:3,jpy:true},'GBPCAD':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'GBPAUD':{cat:'Minors',pm:10000,pv:0.10,dec:5},'GBPNZD':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'GBPCHF':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'AUDJPY':{cat:'Minors',pm:100,pv:0.07,dec:3,jpy:true},'AUDCAD':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'AUDNZD':{cat:'Minors',pm:10000,pv:0.10,dec:5},'AUDCHF':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'NZDJPY':{cat:'Minors',pm:100,pv:0.07,dec:3,jpy:true},'NZDCAD':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'CADJPY':{cat:'Minors',pm:100,pv:0.07,dec:3,jpy:true},'CADCHF':{cat:'Minors',pm:10000,pv:0.10,dec:5},
+    'CHFJPY':{cat:'Minors',pm:100,pv:0.07,dec:3,jpy:true},
+    'USDZAR':{cat:'Exotics',pm:10000,pv:0.10,dec:5},'USDMXN':{cat:'Exotics',pm:10000,pv:0.10,dec:5},
+    'USDTRY':{cat:'Exotics',pm:10000,pv:0.10,dec:5},'USDSGD':{cat:'Exotics',pm:10000,pv:0.10,dec:5},
+    'XAUUSD':{cat:'Metals',pm:10,pv:0.10,dec:2,note:'Gold — pip value approx at 0.01 lot'},
+    'XAGUSD':{cat:'Metals',pm:100,pv:0.05,dec:3,note:'Silver — approx'},
+    'BTCUSD':{cat:'Crypto',pm:1,pv:0.10,dec:2,note:'Bitcoin — values approx'},
+    'ETHUSD':{cat:'Crypto',pm:10,pv:0.10,dec:2,note:'Ethereum — approx'},
+    'XRPUSD':{cat:'Crypto',pm:1000,pv:0.10,dec:4,note:'Ripple — approx'},
+    'SOLUSD':{cat:'Crypto',pm:10,pv:0.10,dec:2,note:'Solana — approx'},
+    'BNBUSD':{cat:'Crypto',pm:10,pv:0.10,dec:2,note:'BNB — approx'},
+    'ADAUSD':{cat:'Crypto',pm:1000,pv:0.10,dec:4,note:'Cardano — approx'},
+    'USOIL':{cat:'Commodities',pm:100,pv:0.10,dec:2,note:'WTI Crude Oil'},
+    'UKOIL':{cat:'Commodities',pm:100,pv:0.10,dec:2,note:'Brent Crude'},
+    'US30':{cat:'Indices',pm:1,pv:0.10,dec:1,note:'Dow Jones'},'SPX500':{cat:'Indices',pm:10,pv:0.10,dec:1,note:'S&P 500'},
+    'NAS100':{cat:'Indices',pm:1,pv:0.10,dec:1,note:'Nasdaq 100'},'GER40':{cat:'Indices',pm:1,pv:0.10,dec:1,note:'DAX 40'},
+  };
+
+  const C_TIMEFRAMES = {
+    '1M':{label:'1 Minute',tp1:2,tp2:3,maxSL:8,ctx:'Scalp — Very tight. SL 3-8 pips typical.'},
+    '5M':{label:'5 Minute',tp1:2,tp2:3,maxSL:15,ctx:'Scalp — SL 5-15 pips typical.'},
+    '15M':{label:'15 Minute',tp1:2,tp2:3,maxSL:25,ctx:'Scalp/Intraday — SL 10-25 pips typical.'},
+    '30M':{label:'30 Minute',tp1:2,tp2:3,maxSL:40,ctx:'Intraday — SL 15-40 pips typical.'},
+    '1H':{label:'1 Hour',tp1:2,tp2:4,maxSL:60,ctx:'Intraday — SL 20-60 pips typical.'},
+    '2H':{label:'2 Hour',tp1:2,tp2:4,maxSL:80,ctx:'Intraday/Swing — SL 30-80 pips typical.'},
+    '4H':{label:'4 Hour',tp1:2,tp2:4,maxSL:100,ctx:'Swing — SL 40-100 pips typical.'},
+    'D1':{label:'Daily',tp1:2,tp2:5,maxSL:200,ctx:"Position — SL 80-200 pips. Wilder's original focus."},
+    'W1':{label:'Weekly',tp1:2,tp2:5,maxSL:400,ctx:'Position — SL 150-400 pips typical.'},
+    'MN':{label:'Monthly',tp1:2,tp2:5,maxSL:800,ctx:'Long-term — SL 300+ pips typical.'},
+  };
+  const TF_KEYS = ['1M','5M','15M','30M','1H','2H','4H','D1','W1','MN'];
+
+  let calcTF = '5M';
+
+  // ── INIT CALCULATOR ──
+  function initCalc() {
+    // Build pair dropdown
+    const sel = document.getElementById('c_pair');
+    const cats = ['Majors','Minors','Exotics','Metals','Crypto','Commodities','Indices'];
+    cats.forEach(cat => {
+      const pairs = Object.keys(C_INSTRUMENTS).filter(p => C_INSTRUMENTS[p].cat === cat);
+      if (!pairs.length) return;
+      const grp = document.createElement('optgroup');
+      grp.label = '── ' + cat + ' ──';
+      pairs.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p; opt.textContent = p + (C_INSTRUMENTS[p].jpy ? ' ★JPY' : '');
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    });
+    sel.value = 'AUDUSD';
+
+    // Build TF pills
+    const container = document.getElementById('tfPills');
+    TF_KEYS.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'tf-pill' + (t === calcTF ? ' active' : '');
+      btn.textContent = t;
+      btn.onclick = () => setCalcTF(t);
+      container.appendChild(btn);
+    });
+    updateTFContext();
+  }
+
+  function setCalcTF(tf) {
+    calcTF = tf;
+    document.querySelectorAll('.tf-pill').forEach(b => {
+      b.className = 'tf-pill' + (b.textContent === tf ? ' active' : '');
+    });
+    updateTFContext();
+    calcUpdate();
+  }
+
+  function updateTFContext() {
+    const tf = C_TIMEFRAMES[calcTF];
+    document.getElementById('tfBadge').textContent = calcTF;
+    document.getElementById('tfLabel').textContent = tf.label + ' Chart';
+    document.getElementById('tfCtx').textContent = tf.ctx;
+    document.getElementById('calcIndSec').textContent = 'Wilder Indicators — ' + calcTF + ' Chart';
+  }
+
+  function calcPairChanged() {
+    const pair = document.getElementById('c_pair').value;
+    const cfg = C_INSTRUMENTS[pair] || {};
+    const noteEl = document.getElementById('pairNote');
+    const noteTxt = document.getElementById('pairNoteText');
+    if (cfg.jpy) {
+      noteEl.style.display = 'block';
+      noteEl.style.background = '#eff6ff'; noteEl.style.border = '1.5px solid #93c5fd';
+      noteTxt.style.color = '#1d4ed8';
+      noteTxt.textContent = '⚡ JPY Pair — Pip = 0.01 (2nd decimal). Pip value ~$0.07 at 0.01 lot.';
+    } else if (cfg.note) {
+      noteEl.style.display = 'block';
+      noteEl.style.background = '#fffbeb'; noteEl.style.border = '1.5px solid #fde047';
+      noteTxt.style.color = '#854d0e';
+      noteTxt.textContent = '📌 ' + cfg.note;
+    } else {
+      noteEl.style.display = 'none';
+    }
+    calcUpdate();
+  }
+
+  // ── FILL CALC FROM SCANNER ──
+  function fillCalcFromScan() {
+    const pair    = document.getElementById('f_pair').value.trim().toUpperCase();
+    const tf      = document.getElementById('f_tf').value.trim();
+    const entry   = document.getElementById('f_entry').value.trim();
+    const sar     = document.getElementById('f_sar').value.trim();
+    const atr     = document.getElementById('f_atr').value.trim();
+    const adx     = document.getElementById('f_adx').value.trim();
+    const plusDI  = document.getElementById('f_pdi').value.trim();
+    const minusDI = document.getElementById('f_ndi').value.trim();
+    const rsi     = document.getElementById('f_rsi').value.trim();
+
+    // Set pair if it exists in our database
+    if (pair && C_INSTRUMENTS[pair]) {
+      document.getElementById('c_pair').value = pair;
+      calcPairChanged();
+    }
+    // Convert and set timeframe
+    const calcTFVal = convertTF(tf);
+    setCalcTF(calcTFVal);
+
+    // Fill indicator fields
+    if (entry)   document.getElementById('c_entry').value = entry;
+    if (sar)     document.getElementById('c_sar').value   = sar;
+    if (atr)     document.getElementById('c_atr').value   = atr;
+    if (adx)     document.getElementById('c_adx').value   = adx;
+    if (plusDI)  document.getElementById('c_pdi').value   = plusDI;
+    if (minusDI) document.getElementById('c_ndi').value   = minusDI;
+    if (rsi)     document.getElementById('c_rsi').value   = rsi;
+
+    // Show banner
+    const banner = document.getElementById('calcBanner');
+    const bannerTxt = document.getElementById('bannerTxt');
+    banner.style.display = 'block';
+    bannerTxt.textContent = (pair || '?') + ' · ' + (calcTFVal || '?') + ' — Data pre-filled ✓';
+
+    calcUpdate();
+    showPanel('calc');
+    toast('🚀 Sent to Calculator!');
+  }
+
+  // ── VALIDATION ──
+  function runCalcValidation(adx, pdi, mdi, rsi, entry, sar, dir) {
+    const checks = [];
+    if (adx < 20)      checks.push({ok:false, text:'ADX below 20 — No trend. Do not trade.'});
+    else if (adx < 25) checks.push({ok:null,  text:'ADX ' + adx.toFixed(1) + ' — Weak trend. Trade with caution.'});
+    else               checks.push({ok:true,  text:'ADX ' + adx.toFixed(1) + ' — Strong trend confirmed.'});
+
+    if (dir === 'BUY') {
+      checks.push(pdi > mdi
+        ? {ok:true,  text:'+DI ' + pdi + ' > -DI ' + mdi + ' — Bullish confirmed.'}
+        : {ok:false, text:'-DI dominates. Conflicts with BUY. Do not enter.'});
+      checks.push(sar < entry
+        ? {ok:true,  text:'SAR below price — Uptrend valid.'}
+        : {ok:false, text:'SAR above price — Conflicts with BUY. Wait for SAR flip.'});
+      checks.push(rsi > 50
+        ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Bullish momentum confirmed.'}
+        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Momentum not confirming BUY yet.'});
+    } else if (dir === 'SELL') {
+      checks.push(mdi > pdi
+        ? {ok:true,  text:'-DI ' + mdi + ' > +DI ' + pdi + ' — Bearish confirmed.'}
+        : {ok:false, text:'+DI dominates. Conflicts with SELL. Do not enter.'});
+      checks.push(sar > entry
+        ? {ok:true,  text:'SAR above price — Downtrend valid.'}
+        : {ok:false, text:'SAR below price — Conflicts with SELL. Wait for SAR flip.'});
+      checks.push(rsi < 50
+        ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Bearish momentum confirmed.'}
+        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Momentum not confirming SELL yet.'});
+    }
+    return { checks, valid: !checks.some(c => c.ok === false) };
+  }
+
+  // ── MAIN CALC UPDATE ──
+  function calcUpdate() {
+    const pair    = document.getElementById('c_pair').value;
+    const dir     = document.getElementById('c_dir').value;
+    const entry   = +document.getElementById('c_entry').value;
+    const atr     = +document.getElementById('c_atr').value;
+    const sar     = +document.getElementById('c_sar').value;
+    const adx     = +document.getElementById('c_adx').value;
+    const pdi     = +document.getElementById('c_pdi').value;
+    const ndi     = +document.getElementById('c_ndi').value;
+    const rsi     = +document.getElementById('c_rsi').value;
+    const lot     = +document.getElementById('c_lot').value;
+    const balance = +document.getElementById('c_balance').value;
+    const lev     = +document.getElementById('c_lev').value;
+
+    const ready = entry && atr && sar && adx && pdi && ndi && rsi && dir;
+
+    document.getElementById('calcEmpty').style.display = ready ? 'none' : 'block';
+    document.getElementById('validCard').style.display = ready ? 'block' : 'none';
+    document.getElementById('tradeHeader').style.display = ready ? 'block' : 'none';
+    document.getElementById('levelsCard').style.display = ready ? 'block' : 'none';
+    document.getElementById('statsCard').style.display = ready ? 'block' : 'none';
+
+    if (!ready) return;
+
+    const cfg  = C_INSTRUMENTS[pair] || {pm:10000, pv:0.10, dec:5};
+    const tf   = C_TIMEFRAMES[calcTF] || C_TIMEFRAMES['5M'];
+    const pm   = cfg.pm;
+    const pv   = cfg.pv * (lot / 0.01);
+    const fmt  = v => v.toFixed(cfg.dec);
+
+    const sarPips  = Math.abs(entry - sar) * pm;
+    const atrPips  = atr * pm;
+    const slPips   = Math.max(sarPips, atrPips);
+    const tp1Pips  = atrPips * tf.tp1;
+    const tp2Pips  = atrPips * tf.tp2;
+    const dirMult  = dir === 'BUY' ? 1 : -1;
+
+    const slPrice  = fmt(entry - dirMult * (slPips / pm));
+    const tp1Price = fmt(entry + dirMult * (tp1Pips / pm));
+    const tp2Price = fmt(entry + dirMult * (tp2Pips / pm));
+    const slLoss   = slPips * pv;
+    const tp1Prof  = tp1Pips * pv;
+    const tp2Prof  = tp2Pips * pv;
+    const rr1      = (tp1Pips / slPips).toFixed(2);
+    const rr2      = (tp2Pips / slPips).toFixed(2);
+    const riskPct  = (slLoss / balance * 100).toFixed(1);
+    const margin   = (lot * 100000) / lev;
+    const free     = balance - margin;
+    const sarBasis = sarPips >= atrPips;
+
+    // Direction color
+    const dirColor = dir === 'BUY' ? '#16a34a' : '#dc2626';
+    document.getElementById('c_dir').style.color = dirColor;
+
+    // ── VALIDATION ──
+    const v = runCalcValidation(adx, pdi, ndi, rsi, entry, sar, dir);
+    const checksHTML = v.checks.map(c => {
+      const bg     = c.ok===true?'#f0fdf4':c.ok===false?'#fef2f2':'#fffbeb';
+      const border = c.ok===true?'#86efac':c.ok===false?'#fca5a5':'#fcd34d';
+      const color  = c.ok===true?'#15803d':c.ok===false?'#b91c1c':'#92400e';
+      const icon   = c.ok===true?'✅':c.ok===false?'❌':'⚠️';
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;background:${bg};border:1.5px solid ${border};">
+        <span style="font-size:17px;">${icon}</span>
+        <span style="font-size:13px;font-weight:700;line-height:1.5;color:${color};font-family:'JetBrains Mono',monospace;">${c.text}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('validChecks').innerHTML = checksHTML;
+    document.getElementById('validSec').textContent = 'Wilder Rule Check — ' + C_TIMEFRAMES[calcTF].label;
+    document.getElementById('validResult').style.background = v.valid ? '#16a34a' : '#dc2626';
+    document.getElementById('validResult').innerHTML = `<span style="font-size:14px;font-weight:900;color:#fff;font-family:'Rajdhani',sans-serif;">
+      ${v.valid ? '✓  TRADE VALID — All Rules Passed' : '✗  TRADE INVALID — Fix Issues Above'}</span>`;
+
+    // ── TRADE HEADER ──
+    const th = document.getElementById('tradeHeader');
+    th.style.background = dirColor;
+    document.getElementById('tradeHeaderSub').textContent = C_TIMEFRAMES[calcTF].label.toUpperCase() + ' CHART — ACTIVE TRADE';
+    document.getElementById('tradeHeaderMain').textContent = dir + ' ' + pair;
+    document.getElementById('tradeHeaderEntry').textContent = 'Entry @ ' + fmt(entry);
+
+    // ── LEVELS ──
+    document.getElementById('levelsSec').textContent = 'Trade Levels — ' + calcTF;
+    document.getElementById('slBox').innerHTML = `
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'Rajdhani',sans-serif;">Stop Loss</div>
+      <div style="font-size:15px;font-weight:900;margin-bottom:5px;word-break:break-all;font-family:'JetBrains Mono',monospace;">${slPrice}</div>
+      <div style="font-size:11px;font-weight:700;opacity:0.8;font-family:'JetBrains Mono',monospace;">${slPips.toFixed(1)} pips</div>
+      <div style="font-size:13px;font-weight:800;margin-top:2px;font-family:'JetBrains Mono',monospace;">-$${slLoss.toFixed(2)}</div>`;
+    document.getElementById('tp1Box').innerHTML = `
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'Rajdhani',sans-serif;">TP1 · ${tf.tp1}×ATR</div>
+      <div style="font-size:15px;font-weight:900;margin-bottom:5px;word-break:break-all;font-family:'JetBrains Mono',monospace;">${tp1Price}</div>
+      <div style="font-size:11px;font-weight:700;opacity:0.8;font-family:'JetBrains Mono',monospace;">${tp1Pips.toFixed(1)} pips</div>
+      <div style="font-size:13px;font-weight:800;margin-top:2px;font-family:'JetBrains Mono',monospace;">+$${tp1Prof.toFixed(2)}</div>`;
+    document.getElementById('tp2Box').innerHTML = `
+      <div style="font-size:10px;font-weight:800;color:#2563eb;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'Rajdhani',sans-serif;">TP2 · ${tf.tp2}×ATR — Hold if ADX Still Rising</div>
+      <div style="font-size:20px;font-weight:900;color:#1d4ed8;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">${tp2Price}</div>
+      <div style="font-size:12px;font-weight:700;color:#2563eb;font-family:'JetBrains Mono',monospace;">${tp2Pips.toFixed(1)} pips · +$${tp2Prof.toFixed(2)} · RR ${rr2}:1</div>`;
+
+    let levNotes = '';
+    if (slPips > tf.maxSL) levNotes += `<div style="padding:10px 14px;background:#fffbeb;border:1.5px solid #fde047;border-radius:10px;margin-top:10px;font-size:12px;font-weight:700;color:#92400e;font-family:'JetBrains Mono',monospace;">⚠️ SL of ${slPips.toFixed(1)} pips is wider than typical for ${calcTF}.</div>`;
+    if (cfg.jpy) levNotes += `<div style="padding:10px 14px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;margin-top:10px;font-size:12px;font-weight:700;color:#1d4ed8;font-family:'JetBrains Mono',monospace;">⚡ JPY pair — pip at 0.01 (2nd decimal).</div>`;
+    document.getElementById('levelsNotes').innerHTML = levNotes;
+
+    // ── STATS ──
+    const marginRisk = free < slLoss;
+    const riskColor  = +riskPct > 10 ? '#dc2626' : +riskPct > 5 ? '#d97706' : '#16a34a';
+    const rrColor    = +rr1 >= 2 ? '#16a34a' : '#d97706';
+    const freeColor  = marginRisk ? '#dc2626' : '#16a34a';
+    const stats = [
+      {lbl:'Risk %', val: riskPct+'%', color: riskColor},
+      {lbl:'RR (TP1)', val: rr1+' : 1', color: rrColor},
+      {lbl:'Pip Value', val: '$'+pv.toFixed(3), color:'#111'},
+      {lbl:'SL Basis', val: sarBasis?'SAR':'ATR', color:'#111'},
+      {lbl:'Margin Used', val: '$'+margin.toFixed(2), color:'#111'},
+      {lbl:'Free Margin', val: '$'+free.toFixed(2), color: freeColor},
+    ];
+    document.getElementById('statsGrid').innerHTML = stats.map(s =>
+      `<div class="calc-stat">
+        <div style="font-size:10px;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">${s.lbl}</div>
+        <div style="font-size:16px;font-weight:900;color:${s.color};font-family:'JetBrains Mono',monospace;">${s.val}</div>
+      </div>`
+    ).join('');
+    document.getElementById('statsNotes').innerHTML = marginRisk
+      ? `<div style="padding:10px 14px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;font-size:12px;font-weight:700;color:#991b1b;font-family:'JetBrains Mono',monospace;">⚠️ Margin call risk — Free margin ($${free.toFixed(2)}) is less than potential loss ($${slLoss.toFixed(2)}).</div>` : '';
+  }
+
+  // ── UPDATE sendToCalculator to use internal tab instead of opening URL ──
+  function sendToCalculator() {
+    const pair = document.getElementById('f_pair').value.trim();
+    const entry = document.getElementById('f_entry').value.trim();
+    if (!pair || !entry) { toast('⚠ Scan a chart first'); return; }
+    fillCalcFromScan();
+  }
+
+  // Init calculator on load
+  window.addEventListener('DOMContentLoaded', initCalc);
+
 </script>
 </body>
 </html>
