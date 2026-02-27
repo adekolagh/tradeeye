@@ -571,6 +571,7 @@ canvas { display: none; }
   let stream       = null;
   let camActive    = false;
   let uploadB64    = null;
+  let uploadMimeType = 'image/jpeg';
   let isProcessing = false;
 
   const FIELD_MAP = {
@@ -668,8 +669,11 @@ canvas { display: none; }
     if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-      uploadB64 = ev.target.result.split(',')[1];
-      document.getElementById('uploadPreviewImg').src = ev.target.result;
+      const dataUrl = ev.target.result;
+      // Extract real media type from data URL (image/png, image/jpeg etc)
+      uploadB64      = dataUrl.split(',')[1];
+      uploadMimeType = dataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
+      document.getElementById('uploadPreviewImg').src = dataUrl;
       document.getElementById('uploadPreviewWrap').style.display = 'block';
       document.getElementById('uploadArea').style.display = 'none';
       document.getElementById('uploadScanBtn').disabled = false;
@@ -682,6 +686,7 @@ canvas { display: none; }
 
   function clearUpload() {
     uploadB64 = null;
+    uploadMimeType = 'image/jpeg';
     document.getElementById('fileInput').value = '';
     document.getElementById('uploadPreviewWrap').style.display = 'none';
     document.getElementById('uploadArea').style.display = 'flex';
@@ -751,7 +756,7 @@ Look for: 'Wilder Structure (Clean Simple)' for SAR, 'ATR-Current' for ATR, 'ADX
           messages: [{
             role: 'user',
             content: [
-              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+              { type: 'image', source: { type: 'base64', media_type: uploadB64 === b64 ? uploadMimeType : 'image/jpeg', data: b64 } },
               { type: 'text',  text: 'Extract all trading data from this chart.' }
             ]
           }]
