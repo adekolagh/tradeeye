@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>TradeEye — Chart Scanner</title>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f0f13">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TradeEye">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
@@ -635,8 +644,13 @@ canvas { display: none; }
       </div><!-- /form-scroll -->
 
       <div class="form-footer">
-        <button class="btn btn-orange" onclick="copyAll()">📋 COPY SUMMARY</button>
+        <button class="btn btn-orange" onclick="copyAll()">📋 COPY</button>
         <button class="btn btn-ghost btn-sm" onclick="clearForm()">CLEAR</button>
+      </div>
+      <div id="sendBar" style="display:none; padding:10px 12px; background:var(--card); border-top:1px solid var(--border);">
+        <button class="btn btn-green" style="width:100%; font-size:15px; padding:15px;" onclick="sendToCalculator()">
+          🚀 SEND TO CALCULATOR
+        </button>
       </div>
     </div>
   </div>
@@ -972,6 +986,8 @@ Return ONLY the JSON object with no other text.`,
 
       setStatus(`${filled}/9 FIELDS`, 'live');
       toast(`✓ Extracted ${filled} values from chart`);
+      // Show Send to Calculator button
+      document.getElementById('sendBar').style.display = 'block';
       if (window.innerWidth < 768) showPanel('form');
 
     } catch(e) {
@@ -993,6 +1009,7 @@ Return ONLY the JSON object with no other text.`,
       el.value = '';
       el.classList.remove('has-value', 'popped');
     });
+    document.getElementById('sendBar').style.display = 'none';
     toast('Fields cleared');
   }
 
@@ -1007,6 +1024,70 @@ Return ONLY the JSON object with no other text.`,
       .map(id => `${labels[id]}: ${document.getElementById(id).value}`);
     if (!lines.length) { toast('⚠ No data to copy'); return; }
     navigator.clipboard.writeText(lines.join('\n')).then(() => toast('✓ Copied to clipboard'));
+  }
+
+  // ── PWA SERVICE WORKER ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('[TradeEye] SW registered'))
+        .catch(e => console.log('[TradeEye] SW error', e));
+    });
+  }
+
+  // ── TIMEFRAME CONVERTER ──
+  // TradeEye format → Calculator format
+  function convertTF(tf) {
+    if (!tf) return '5M';
+    const map = {
+      '1m':'1M',  '1M':'1M',
+      '3m':'5M',  '3M':'5M',
+      '5m':'5M',  '5M':'5M',
+      '15m':'15M','15M':'15M',
+      '30m':'30M','30M':'30M',
+      '45m':'30M','45M':'30M',
+      '1h':'1H',  '1H':'1H',
+      '2h':'2H',  '2H':'2H',
+      '4h':'4H',  '4H':'4H',
+      'd':'D1',   'D':'D1',   '1D':'D1', 'D1':'D1', 'Daily':'D1',
+      'w':'W1',   'W':'W1',   '1W':'W1', 'W1':'W1', 'Weekly':'W1',
+      'm':'MN',   'M':'MN',   '1M':'MN', 'MN':'MN', 'Monthly':'MN',
+    };
+    return map[tf] || map[tf.toUpperCase()] || '5M';
+  }
+
+  // ── SEND TO CALCULATOR ──
+  function sendToCalculator() {
+    const pair    = document.getElementById('f_pair').value.trim().toUpperCase();
+    const tf      = document.getElementById('f_tf').value.trim();
+    const entry   = document.getElementById('f_entry').value.trim();
+    const sar     = document.getElementById('f_sar').value.trim();
+    const atr     = document.getElementById('f_atr').value.trim();
+    const adx     = document.getElementById('f_adx').value.trim();
+    const plusDI  = document.getElementById('f_pdi').value.trim();
+    const minusDI = document.getElementById('f_ndi').value.trim();
+    const rsi     = document.getElementById('f_rsi').value.trim();
+
+    // Need at least pair + entry + the indicators to be useful
+    if (!pair || !entry) {
+      toast('⚠ Scan a chart first'); return;
+    }
+
+    const calcTF = convertTF(tf);
+
+    const params = new URLSearchParams({
+      pair, tf: calcTF, entry, sar, atr,
+      adx, plusDI, minusDI, rsi
+    });
+
+    // Remove empty params
+    for (const [k, v] of [...params.entries()]) {
+      if (!v) params.delete(k);
+    }
+
+    const url = `https://wilderscalculator.netlify.app/?${params.toString()}`;
+    window.open(url, '_blank');
+    toast('🚀 Opening calculator…');
   }
 </script>
 </body>
