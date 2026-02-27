@@ -917,21 +917,21 @@ Return exactly these keys (use null if a value cannot be found):
 
 Follow these exact rules for each field:
 
-PAIR: Top-left corner instrument symbol e.g. "BTCUSD", "AUDUSD", "EURUSD".
+PAIR: Top-left corner instrument symbol. Read it exactly as shown — it may include suffixes like ".P" for perpetual contracts e.g. "BEATUSDT.P" → return "BEATUSDT", "BTCUSD" → return "BTCUSD", "XAUUSD" → return "XAUUSD". Strip any exchange suffix but keep the full trading pair name. If the image is blurry, also check the chart title text in the second row which shows the full name e.g. "BEATUSDT Perpetual Contract".
 
 TIMEFRAME: In the top toolbar, find the currently SELECTED/HIGHLIGHTED timeframe button. It appears bolder, brighter or highlighted compared to others. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return exactly as shown e.g. "5m", "1h", "4h", "D". Do NOT guess — only return the visually active one.
 
-ENTRY: The close price (C:) shown at the top of the chart next to O H L C. Use the C value.
+ENTRY: Find the OHLC bar at the very top of the chart. It shows O H L C values. The ENTRY is the C (close) value — it appears after the letter "C" followed by a number e.g. "C5,238.070" or "C0.20610". Do NOT use the price numbers on the right-side vertical price scale. Do NOT use the buy/sell box prices on the left. Use ONLY the C: close price from the top OHLC line.
 
 SAR: Find the label "Wilder Structure (Clean Simple)" in the top-left indicator area. The SAR value is the LAST number shown on that line e.g. "Wilder Structure (Clean Simple) 14 20 0.02 0.2  62839.2" → return "62839.2". Also check the right side for a pink/red box labeled "Wilder Structure (Clean Simple):SAR".
 
 ATR: Find the label "ATR-Current" in the indicator panel. Look for the ATR(14) value shown. On the right side there may be a box — use the "ATR (14)" row value.
 
-ADX: Find "ADX Wilder Dashboard" indicator panel. On the RIGHT SIDE of the chart there are colored boxes/labels:
-- The box labeled "ADX" (usually blue/teal color) = adx value
-- The box labeled "+DI" (GREEN color, positive directional index) = plus_di value  
-- The box labeled "-DI" (RED color, negative directional index) = minus_di value
-IMPORTANT: Do NOT swap +DI and -DI. Read the label color carefully — GREEN label = +DI, RED label = -DI. Also check the indicator header text which lists values as: ADX first, then +DI second, then -DI third.
+ADX: Find "ADX Wilder Dashboard" indicator panel. The header line shows 3 numbers in this exact order: ADX value FIRST, then +DI value SECOND, then -DI value THIRD e.g. "ADX Wilder Dashboard (Pure v6) 14 14 20  10.54757  17.79356  21.93271" means ADX=10.54757, +DI=17.79356, -DI=21.93271. Also check the right side of the chart for colored label boxes:
+- GREEN box labeled "+DI" = plus_di value
+- RED box labeled "-DI" = minus_di value  
+- GREEN/TEAL box labeled "ADX" = adx value
+IMPORTANT: The header order is always ADX, +DI, -DI. Use this order if the right-side boxes are unclear. Never swap +DI and -DI.
 
 RSI: Find "RSI-Wilder" indicator panel. On the right side look for the "RSI" labeled box or "WILDER RSI" value. Return the RSI number, NOT the 50.0 midline value.
 
