@@ -909,20 +909,33 @@ canvas { display: none; }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 800,
-          system: `You are a trading chart data extractor. Extract values from the chart screenshot and return ONLY a valid JSON object with no markdown, no explanation, no backticks.
+          max_tokens: 1024,
+          system: `You are a precise trading chart data extractor for TradingView charts using Wilder indicators. Extract values and return ONLY a valid JSON object — no markdown, no explanation, no backticks.
 
-Return exactly these keys (null if not found):
-{"pair":"trading pair e.g. AUDUSD","timeframe":"e.g. 5m, 1h, 4h, D","entry":"current/close price","sar":"Wilder SAR value","atr":"ATR value","adx":"ADX value","plus_di":"+DI value","minus_di":"-DI value","rsi":"RSI value"}
+Return exactly these keys (use null if a value cannot be found):
+{"pair":"","timeframe":"","entry":"","sar":"","atr":"","adx":"","plus_di":"","minus_di":"","rsi":""}
 
-TIMEFRAME: Look at the TOP toolbar for the selected/highlighted timeframe button. Common values are: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M. The active one is usually highlighted or selected. Return it exactly as shown e.g. "5m", "1h", "4h", "D".
-PAIR: Look at the top-left corner for the instrument name e.g. "AUDUSD", "BTCUSD".
-SAR: Look for 'Wilder Structure (Clean Simple)' label — extract the last number shown.
-ATR: Look for 'ATR-Current' label — extract the ATR value.
-ADX/+DI/-DI: Look for 'ADX Wilder Dashboard' label — extract ADX, +DI and -DI values.
-RSI: Look for 'RSI-Wilder' label — extract the RSI value.
-ENTRY: Use the current price shown at top (C: or close price).
-Return ONLY the JSON.`,
+Follow these exact rules for each field:
+
+PAIR: Top-left corner instrument symbol e.g. "BTCUSD", "AUDUSD", "EURUSD".
+
+TIMEFRAME: In the top toolbar, find the currently SELECTED/HIGHLIGHTED timeframe button. It appears bolder, brighter or highlighted compared to others. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return exactly as shown e.g. "5m", "1h", "4h", "D". Do NOT guess — only return the visually active one.
+
+ENTRY: The close price (C:) shown at the top of the chart next to O H L C. Use the C value.
+
+SAR: Find the label "Wilder Structure (Clean Simple)" in the top-left indicator area. The SAR value is the LAST number shown on that line e.g. "Wilder Structure (Clean Simple) 14 20 0.02 0.2  62839.2" → return "62839.2". Also check the right side for a pink/red box labeled "Wilder Structure (Clean Simple):SAR".
+
+ATR: Find the label "ATR-Current" in the indicator panel. Look for the ATR(14) value shown. On the right side there may be a box — use the "ATR (14)" row value.
+
+ADX: Find "ADX Wilder Dashboard" indicator panel. On the RIGHT SIDE of the chart there are colored boxes/labels:
+- The box labeled "ADX" (usually blue/teal color) = adx value
+- The box labeled "+DI" (GREEN color, positive directional index) = plus_di value  
+- The box labeled "-DI" (RED color, negative directional index) = minus_di value
+IMPORTANT: Do NOT swap +DI and -DI. Read the label color carefully — GREEN label = +DI, RED label = -DI. Also check the indicator header text which lists values as: ADX first, then +DI second, then -DI third.
+
+RSI: Find "RSI-Wilder" indicator panel. On the right side look for the "RSI" labeled box or "WILDER RSI" value. Return the RSI number, NOT the 50.0 midline value.
+
+Return ONLY the JSON object with no other text.`,
           messages: [{
             role: 'user',
             content: [
