@@ -280,7 +280,7 @@ canvas { display: none; }
 
 /* Action row */
 .cam-actions {
-  display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px;
+  display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 8px;
   padding: 12px; background: var(--card);
   border-top: 1px solid var(--border); flex-shrink: 0;
 }
@@ -510,6 +510,7 @@ canvas { display: none; }
       <button class="btn btn-blue" id="camMainBtn" onclick="handleCamBtn()">▶ START CAMERA</button>
       <button class="auto-btn off" id="autoBtn" onclick="toggleAuto()">⚡ AUTO</button>
       <button class="btn btn-green btn-sm" id="scanBtn" onclick="doScan()" disabled>SCAN</button>
+      <button class="btn btn-ghost btn-sm" id="freshBtn" onclick="freshStart()" title="Reset">↺</button>
       <button class="btn btn-danger btn-ico" id="camClearBtn" onclick="clearCamPreview()" style="display:none">✕</button>
     </div>
   </div>
@@ -802,6 +803,29 @@ canvas { display: none; }
     document.getElementById('camClearBtn').style.display = 'none';
   }
 
+  // Resets frozen preview, stops auto mode, clears stuck processing state
+  function freshStart() {
+    // Clear frozen frame
+    const pi = document.getElementById('previewImg');
+    pi.style.display = 'none';
+    pi.src = '';
+    document.getElementById('video').style.display = 'block';
+    document.getElementById('camClearBtn').style.display = 'none';
+    // Stop auto mode and countdown
+    autoMode = false;
+    stopCountdown();
+    const autoBtn = document.getElementById('autoBtn');
+    autoBtn.className = 'auto-btn off';
+    autoBtn.textContent = '⚡ AUTO';
+    // Reset processing state in case it got stuck
+    isProcessing = false;
+    document.getElementById('analyzing').classList.remove('on');
+    document.getElementById('scanBtn').disabled = !camActive;
+    // Reset status
+    setStatus(camActive ? 'LIVE' : 'STANDBY', camActive ? 'live' : '');
+    toast('↺ Reset — ready to scan');
+  }
+
   // ── UPLOAD ──
   function handleFile(e) {
     const file = e.target.files[0];
@@ -891,7 +915,14 @@ canvas { display: none; }
 Return exactly these keys (null if not found):
 {"pair":"trading pair e.g. AUDUSD","timeframe":"e.g. 5m, 1h, 4h, D","entry":"current/close price","sar":"Wilder SAR value","atr":"ATR value","adx":"ADX value","plus_di":"+DI value","minus_di":"-DI value","rsi":"RSI value"}
 
-Look for: 'Wilder Structure (Clean Simple)' for SAR, 'ATR-Current' for ATR, 'ADX Wilder Dashboard' for ADX/+DI/-DI, 'RSI-Wilder' for RSI. Return ONLY the JSON.`,
+TIMEFRAME: Look at the TOP toolbar for the selected/highlighted timeframe button. Common values are: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M. The active one is usually highlighted or selected. Return it exactly as shown e.g. "5m", "1h", "4h", "D".
+PAIR: Look at the top-left corner for the instrument name e.g. "AUDUSD", "BTCUSD".
+SAR: Look for 'Wilder Structure (Clean Simple)' label — extract the last number shown.
+ATR: Look for 'ATR-Current' label — extract the ATR value.
+ADX/+DI/-DI: Look for 'ADX Wilder Dashboard' label — extract ADX, +DI and -DI values.
+RSI: Look for 'RSI-Wilder' label — extract the RSI value.
+ENTRY: Use the current price shown at top (C: or close price).
+Return ONLY the JSON.`,
           messages: [{
             role: 'user',
             content: [
