@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TradeEye — Chart Scanner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #0f0f13;
+  --card:   #16161d;
+  --card2:  #1c1c26;
+  --border: #2a2a3d;
+  --blue:        #3b82f6;
+  --blue-bright: #60a5fa;
+  --green:        #22c55e;
+  --green-bright: #4ade80;
+  --orange:        #f97316;
+  --orange-bright: #fb923c;
+  --yellow: #eab308;
+  --red:    #ef4444;
+  --pink:   #ec4899;
+  --purple: #a855f7;
+  --white:  #ffffff;
+  --text:   #e2e8f0;
+  --muted:  #64748b;
+  --muted2: #475569;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 2px solid var(--blue);
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-badge {
+  background: var(--blue);
+  border-radius: 8px;
+  width: 34px; height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.logo-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 2px;
+}
+
+.logo-name span { color: var(--blue-bright); }
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sdot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.sdot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 2s infinite; }
+.sdot.scan { background: var(--blue);  box-shadow: 0 0 8px var(--blue);  animation: blink 0.7s infinite; }
+.sdot.err  { background: var(--red);   box-shadow: 0 0 8px var(--red); }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+/* APP BODY */
+.app-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* TAB BAR — mobile */
+.tab-bar {
+  display: flex;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab.active {
+  color: var(--white);
+  border-bottom-color: var(--blue);
+  background: rgba(59,130,246,0.08);
+}
+
+/* PANELS */
+.panel {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.panel.active { display: flex; }
+
+/* CAMERA VIEWPORT — locked 16:9 */
+.cam-viewport {
+  position: relative;
+  background: #06060a;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  flex-shrink: 0;
+}
+
+video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#previewImg {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: none;
+  background: #06060a;
+}
+
+canvas { display: none; }
+
+.cam-idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #06060a;
+}
+
+.cam-idle-icon {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--card2);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+
+.cam-idle p { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+/* Reticle */
+.reticle {
+  position: absolute;
+  inset: 24px;
+  pointer-events: none;
+  display: none;
+}
+.reticle.on { display: block; }
+
+.reticle::before, .reticle::after, .rc-br, .rc-bl {
+  content: '';
+  position: absolute;
+  width: 26px; height: 26px;
+  border-style: solid;
+  border-color: var(--blue-bright);
+}
+.reticle::before { top:0; left:0;  border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.reticle::after  { top:0; right:0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+.rc-br { bottom:0; right:0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+.rc-bl { bottom:0; left:0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+
+.sweep { position: absolute; inset: 0; overflow: hidden; }
+.sweep::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue-bright), transparent);
+  box-shadow: 0 0 12px var(--blue);
+  animation: swp 2.5s ease-in-out infinite;
+}
+@keyframes swp {
+  0%  { top:0;    opacity:0; }
+  5%  { opacity:1; }
+  95% { opacity:1; }
+  100%{ top:100%; opacity:0; }
+}
+
+/* Analyzing overlay */
+.analyzing {
+  position: absolute;
+  inset: 0;
+  background: rgba(6,6,10,0.9);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 10;
+}
+.analyzing.on { display: flex; }
+
+.spin-ring {
+  width: 56px; height: 56px;
+  border: 3px solid var(--card2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.analyzing-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--blue-bright);
+  letter-spacing: 4px;
+}
+.analyzing-sub { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+/* Camera action row */
+.cam-actions {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  padding: 12px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* UPLOAD PANEL */
+.upload-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 16px;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--card);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.upload-area:hover, .upload-area.dragover {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.05);
+}
+
+.upload-icon {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: var(--card2);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+}
+
+.upload-area h3 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.upload-area p { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+#fileInput { display: none; }
+
+.upload-preview-wrap {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  display: none;
+}
+
+#uploadPreviewImg {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  background: #06060a;
+  display: block;
+}
+
+/* FORM PANEL */
+.form-panel-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.form-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-scroll::-webkit-scrollbar { width: 3px; }
+.form-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Section heading */
+.sect-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.sect-line { flex: 1; height: 1px; background: var(--border); }
+
+.sect-lbl {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+
+/* Field */
+.field { display: flex; flex-direction: column; gap: 5px; }
+
+.field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.b-blue   { background: rgba(59,130,246,0.2);  color: #93c5fd; border:1px solid rgba(59,130,246,0.4); }
+.b-yellow { background: rgba(234,179,8,0.2);   color: #fde047; border:1px solid rgba(234,179,8,0.4); }
+.b-green  { background: rgba(34,197,94,0.2);   color: #86efac; border:1px solid rgba(34,197,94,0.4); }
+.b-orange { background: rgba(249,115,22,0.2);  color: #fdba74; border:1px solid rgba(249,115,22,0.4); }
+.b-red    { background: rgba(239,68,68,0.2);   color: #fca5a5; border:1px solid rgba(239,68,68,0.4); }
+.b-purple { background: rgba(168,85,247,0.2);  color: #d8b4fe; border:1px solid rgba(168,85,247,0.4); }
+.b-pink   { background: rgba(236,72,153,0.2);  color: #f9a8d4; border:1px solid rgba(236,72,153,0.4); }
+
+.finput {
+  background: var(--card2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--white);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 13px 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  -webkit-appearance: none;
+}
+
+.finput::placeholder { color: var(--muted2); font-size: 13px; }
+
+.finput:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.18);
+}
+
+.finput.has-value {
+  color: var(--green-bright);
+  border-color: rgba(34,197,94,0.4);
+}
+
+.finput.popped { animation: pop 0.55s ease forwards; }
+
+@keyframes pop {
+  0%   { background: rgba(34,197,94,0.22); }
+  100% { background: var(--card2); }
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Form footer */
+.form-footer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* BUTTONS */
+.btn {
+  padding: 13px 16px;
+  border-radius: 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn:active:not(:disabled) { transform: scale(0.96); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-blue   { background: var(--blue);   color:#fff; box-shadow: 0 4px 14px rgba(59,130,246,0.4); }
+.btn-blue:not(:disabled):hover   { background: var(--blue-bright); }
+.btn-green  { background: var(--green);  color:#fff; box-shadow: 0 4px 14px rgba(34,197,94,0.35); }
+.btn-green:not(:disabled):hover  { background: var(--green-bright); }
+.btn-orange { background: var(--orange); color:#fff; box-shadow: 0 4px 14px rgba(249,115,22,0.35); }
+.btn-orange:not(:disabled):hover { background: var(--orange-bright); }
+.btn-ghost  { background: var(--card2); color: var(--text); border: 1.5px solid var(--border); }
+.btn-ghost:not(:disabled):hover  { border-color: var(--blue); color: var(--blue-bright); }
+.btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1.5px solid rgba(239,68,68,0.3); }
+.btn-danger:hover { background: rgba(239,68,68,0.28); }
+
+.btn-sm { padding: 11px 14px; font-size: 13px; }
+.btn-ico { width:46px; height:46px; padding:0; border-radius:10px; font-size:18px; }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 76px;
+  left: 50%;
+  transform: translateX(-50%) translateY(14px);
+  background: var(--card2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--white);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.28s ease;
+  z-index: 999;
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  max-width: calc(100vw - 32px);
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* DESKTOP */
+@media (min-width: 768px) {
+  html, body { overflow: auto; height: auto; min-height: 100vh; }
+  body { height: auto; overflow: auto; }
+  .app-body { flex-direction: row; overflow: visible; height: auto; flex: 1; }
+  .tab-bar { display: none; }
+  .panel { display: flex !important; overflow: hidden; }
+  #cameraPanel, #uploadPanel { flex: 1.3; border-right: 1px solid var(--border); max-height: calc(100vh - 58px); }
+  #formPanel { width: 380px; flex-shrink: 0; max-height: calc(100vh - 58px); }
+  .toast { bottom: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-badge">📡</div>
+    <div class="logo-name">TRADE<span>EYE</span></div>
+  </div>
+  <div class="status-pill">
+    <div class="sdot" id="sdot"></div>
+    <span id="stext">STANDBY</span>
+  </div>
+</div>
+
+<div class="app-body">
+
+  <!-- TAB BAR (mobile) -->
+  <div class="tab-bar">
+    <button class="tab active" id="tabCam"  onclick="showPanel('camera')">📷 Camera</button>
+    <button class="tab"        id="tabUp"   onclick="showPanel('upload')">🖼 Upload</button>
+    <button class="tab"        id="tabForm" onclick="showPanel('form')">📋 Fields</button>
+  </div>
+
+  <!-- CAMERA PANEL -->
+  <div class="panel active" id="cameraPanel" style="overflow-y:auto;">
+    <div class="cam-viewport">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+      <img id="previewImg" alt="">
+
+      <div class="cam-idle" id="camIdle">
+        <div class="cam-idle-icon">📷</div>
+        <p>Tap Start Camera</p>
+      </div>
+
+      <div class="reticle" id="reticle">
+        <div class="rc-br"></div>
+        <div class="rc-bl"></div>
+        <div class="sweep"></div>
+      </div>
+
+      <div class="analyzing" id="analyzing">
+        <div class="spin-ring"></div>
+        <div class="analyzing-title">ANALYZING</div>
+        <div class="analyzing-sub">AI reading chart data…</div>
+      </div>
+    </div>
+
+    <div class="cam-actions">
+      <button class="btn btn-blue"  id="camMainBtn" onclick="handleCamBtn()">▶ START CAMERA</button>
+      <button class="btn btn-green btn-sm" id="scanBtn" onclick="doScan()" disabled>⚡ SCAN</button>
+      <button class="btn btn-danger btn-ico" id="camClearBtn" onclick="clearCamPreview()" style="display:none">✕</button>
+    </div>
+  </div>
+
+  <!-- UPLOAD PANEL -->
+  <div class="panel" id="uploadPanel">
+    <div class="upload-preview-wrap" id="uploadPreviewWrap">
+      <img id="uploadPreviewImg" alt="">
+    </div>
+
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">🖼</div>
+      <h3>Drop Chart Here</h3>
+      <p>or tap to browse screenshot</p>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)">
+
+    <div class="cam-actions">
+      <button class="btn btn-blue" onclick="document.getElementById('fileInput').click()">📂 BROWSE FILE</button>
+      <button class="btn btn-green btn-sm" id="uploadScanBtn" onclick="doScan()" disabled>⚡ SCAN</button>
+      <button class="btn btn-danger btn-ico" id="uploadClearBtn" onclick="clearUpload()" style="display:none">✕</button>
+    </div>
+  </div>
+
+  <!-- FORM PANEL -->
+  <div class="panel" id="formPanel">
+    <div class="form-panel-inner">
+      <div class="form-scroll">
+
+        <div class="sect-head">
+          <div class="sect-line"></div>
+          <div class="sect-lbl">Market</div>
+          <div class="sect-line"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <span class="field-lbl">Trading Pair</span>
+            <span class="badge b-blue">PAIR</span>
+          </div>
+          <input class="finput" id="f_pair" type="text" placeholder="AUDUSD, BTCUSD, EURAUD…" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <span class="field-lbl">Timeframe</span>
+            <span class="badge b-yellow">TF</span>
+          </div>
+          <input class="finput" id="f_tf" type="text" placeholder="5m · 1h · 4h · Daily…" autocomplete="off">
+        </div>
+
+        <div class="sect-head">
+          <div class="sect-line"></div>
+          <div class="sect-lbl">Price Levels</div>
+          <div class="sect-line"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <span class="field-lbl">Entry Price</span>
+            <span class="badge b-green">ENTRY</span>
+          </div>
+          <input class="finput" id="f_entry" type="text" placeholder="Current / close price" inputmode="decimal" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <span class="field-lbl">Wilder SAR</span>
+            <span class="badge b-orange">SAR</span>
+          </div>
+          <input class="finput" id="f_sar" type="text" placeholder="Parabolic SAR value" inputmode="decimal" autocomplete="off">
+        </div>
+
+        <div class="sect-head">
+          <div class="sect-line"></div>
+          <div class="sect-lbl">Indicators</div>
+          <div class="sect-line"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <span class="field-lbl">ATR</span>
+            <span class="badge b-purple">AVG TRUE RANGE</span>
+          </div>
+          <input class="finput" id="f_atr" type="text" placeholder="ATR value" inputmode="decimal" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <span class="field-lbl">ADX</span>
+            <span class="badge b-blue">TREND STRENGTH</span>
+          </div>
+          <input class="finput" id="f_adx" type="text" placeholder="ADX value" inputmode="decimal" autocomplete="off">
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <div class="field-top">
+              <span class="field-lbl">+DI</span>
+              <span class="badge b-green">POS</span>
+            </div>
+            <input class="finput" id="f_pdi" type="text" placeholder="+DI" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="field">
+            <div class="field-top">
+              <span class="field-lbl">−DI</span>
+              <span class="badge b-red">NEG</span>
+            </div>
+            <input class="finput" id="f_ndi" type="text" placeholder="−DI" inputmode="decimal" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <span class="field-lbl">RSI</span>
+            <span class="badge b-pink">RELATIVE STRENGTH</span>
+          </div>
+          <input class="finput" id="f_rsi" type="text" placeholder="RSI value" inputmode="decimal" autocomplete="off">
+        </div>
+
+      </div><!-- /form-scroll -->
+
+      <div class="form-footer">
+        <button class="btn btn-orange" onclick="copyAll()">📋 COPY SUMMARY</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearForm()">CLEAR</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app-body -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let stream = null;
+  let camActive = false;
+  let uploadB64 = null;
+  let isProcessing = false;
+
+
+  function setStatus(txt, state = '') {
+    document.getElementById('stext').textContent = txt;
+    document.getElementById('sdot').className = 'sdot' + (state ? ' ' + state : '');
+  }
+
+  function toast(msg, dur = 2800) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), dur);
+  }
+
+  function showPanel(name) {
+    const panels = { camera:'cameraPanel', upload:'uploadPanel', form:'formPanel' };
+    const tabs   = { camera:'tabCam',      upload:'tabUp',       form:'tabForm' };
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(panels[name]).classList.add('active');
+    document.getElementById(tabs[name]).classList.add('active');
+  }
+
+  // ── CAMERA ──
+  async function handleCamBtn() {
+    camActive ? stopCam() : startCam();
+  }
+
+  async function startCam() {
+    try {
+      setStatus('REQUESTING…', 'scan');
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width:  { ideal: 1920 },
+          height: { ideal: 1080 },
+          aspectRatio: { ideal: 1.7778 }   // 16:9
+        }
+      });
+      document.getElementById('video').srcObject = stream;
+      document.getElementById('camIdle').style.display = 'none';
+      document.getElementById('reticle').classList.add('on');
+      camActive = true;
+      const btn = document.getElementById('camMainBtn');
+      btn.textContent = '⏹ STOP CAMERA';
+      btn.className = 'btn btn-ghost';
+      document.getElementById('scanBtn').disabled = false;
+      setStatus('LIVE', 'live');
+    } catch(e) {
+      setStatus('ERROR', 'err');
+      toast('⚠ Camera denied: ' + e.message);
+    }
+  }
+
+  function stopCam() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    document.getElementById('video').srcObject = null;
+    camActive = false;
+    document.getElementById('reticle').classList.remove('on');
+    document.getElementById('camIdle').style.display = 'flex';
+    const btn = document.getElementById('camMainBtn');
+    btn.textContent = '▶ START CAMERA';
+    btn.className = 'btn btn-blue';
+    document.getElementById('scanBtn').disabled = true;
+    setStatus('STANDBY');
+  }
+
+  function clearCamPreview() {
+    const pi = document.getElementById('previewImg');
+    pi.style.display = 'none'; pi.src = '';
+    document.getElementById('video').style.display = 'block';
+    document.getElementById('camClearBtn').style.display = 'none';
+  }
+
+  // ── UPLOAD ──
+  function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      uploadB64 = ev.target.result.split(',')[1];
+      document.getElementById('uploadPreviewImg').src = ev.target.result;
+      document.getElementById('uploadPreviewWrap').style.display = 'block';
+      document.getElementById('uploadArea').style.display = 'none';
+      document.getElementById('uploadScanBtn').disabled = false;
+      document.getElementById('uploadClearBtn').style.display = 'flex';
+      setStatus('LOADED', 'live');
+      toast('✓ Chart loaded — tap ⚡ SCAN');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearUpload() {
+    uploadB64 = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('uploadPreviewWrap').style.display = 'none';
+    document.getElementById('uploadArea').style.display = 'flex';
+    document.getElementById('uploadScanBtn').disabled = true;
+    document.getElementById('uploadClearBtn').style.display = 'none';
+    setStatus('STANDBY');
+  }
+
+  const ua = document.getElementById('uploadArea');
+  ua.addEventListener('dragover', e => { e.preventDefault(); ua.classList.add('dragover'); });
+  ua.addEventListener('dragleave', () => ua.classList.remove('dragover'));
+  ua.addEventListener('drop', e => {
+    e.preventDefault(); ua.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file?.type.startsWith('image/')) {
+      const dt = new DataTransfer(); dt.items.add(file);
+      document.getElementById('fileInput').files = dt.files;
+      handleFile({ target: { files: [file] } });
+    }
+  });
+
+  // ── SCAN ──
+  async function doScan() {
+    if (isProcessing) return;
+
+    let b64 = uploadB64;
+
+    if (!b64 && camActive) {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      b64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+      // Show frozen frame
+      const pi = document.getElementById('previewImg');
+      pi.src = 'data:image/jpeg;base64,' + b64;
+      pi.style.display = 'block';
+      document.getElementById('video').style.display = 'none';
+      document.getElementById('camClearBtn').style.display = 'flex';
+    }
+
+    if (!b64) { toast('⚠ No image to scan'); return; }
+
+    isProcessing = true;
+    setStatus('ANALYZING…', 'scan');
+    document.getElementById('analyzing').classList.add('on');
+    document.getElementById('scanBtn').disabled = true;
+    document.getElementById('uploadScanBtn').disabled = true;
+
+    try {
+      const res = await fetch('https://tradeeye.vercel.app/api/scan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 800,
+          system: `You are a trading chart data extractor. Extract values from the chart screenshot and return ONLY a valid JSON object with no markdown, no explanation, no backticks.
+
+Return exactly these keys (null if not found):
+{"pair":"trading pair e.g. AUDUSD","timeframe":"e.g. 5m, 1h, 4h, D","entry":"current/close price","sar":"Wilder SAR value","atr":"ATR value","adx":"ADX value","plus_di":"+DI value","minus_di":"-DI value","rsi":"RSI value"}
+
+Look for: 'Wilder Structure (Clean Simple)' for SAR, 'ATR-Current' for ATR, 'ADX Wilder Dashboard' for ADX/+DI/-DI, 'RSI-Wilder' for RSI. Return ONLY the JSON.`,
+          messages: [{
+            role: 'user',
+            content: [
+              { type:'image', source:{ type:'base64', media_type:'image/jpeg', data:b64 } },
+              { type:'text',  text:'Extract all trading data from this chart.' }
+            ]
+          }]
+        })
+      });
+
+      // Check for non-OK before parsing
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`API ${res.status}: ${errText.slice(0, 120)}`);
+      }
+
+      const json = await res.json();
+      if (json.error) throw new Error(json.error.message || json.error);
+
+      const raw = json.content.map(b => b.text||'').join('').replace(/```json|```/g,'').trim();
+      const data = JSON.parse(raw);
+
+      let filled = 0;
+      Object.entries(FIELD_MAP).forEach(([key, id]) => {
+        const val = data[key];
+        if (val && val !== 'null' && val !== null) {
+          const el = document.getElementById(id);
+          el.value = val;
+          el.classList.add('has-value','popped');
+          setTimeout(() => el.classList.remove('popped'), 600);
+          filled++;
+        }
+      });
+
+      setStatus(`${filled}/9 FIELDS`, 'live');
+      toast(`✓ Extracted ${filled} values from chart`);
+      if (window.innerWidth < 768) showPanel('form');
+
+    } catch(e) {
+      setStatus('FAILED', 'err');
+      toast('⚠ ' + e.message);
+      console.error(e);
+    }
+
+    isProcessing = false;
+    document.getElementById('analyzing').classList.remove('on');
+    document.getElementById('scanBtn').disabled = !camActive;
+    document.getElementById('uploadScanBtn').disabled = !uploadB64;
+  }
+
+  // ── FORM ACTIONS ──
+  function clearForm() {
+    ALL_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      el.value = '';
+      el.classList.remove('has-value','popped');
+    });
+    toast('Fields cleared');
+  }
+
+  function copyAll() {
+    const labels = { f_pair:'Pair', f_tf:'Timeframe', f_entry:'Entry', f_sar:'SAR', f_atr:'ATR', f_adx:'ADX', f_pdi:'+DI', f_ndi:'-DI', f_rsi:'RSI' };
+    const lines = ALL_IDS
+      .filter(id => document.getElementById(id).value)
+      .map(id => `${labels[id]}: ${document.getElementById(id).value}`);
+    if (!lines.length) { toast('⚠ No data to copy'); return; }
+    navigator.clipboard.writeText(lines.join('\n')).then(() => toast('✓ Copied to clipboard'));
+  }
+</script>
+</body>
+</html>
