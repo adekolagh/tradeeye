@@ -1322,8 +1322,8 @@ Return ONLY the JSON object with no other text.`,
     navigator.clipboard.writeText(lines.join('\n')).then(() => toast('✓ Copied to clipboard'));
   }
 
-  // ── PWA SERVICE WORKER ──
-  if ('serviceWorker' in navigator) {
+  // ── PWA SERVICE WORKER — only on real deployed domain ──
+  if ('serviceWorker' in navigator && location.hostname !== 'localhost' && !location.hostname.includes('claudeusercontent')) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
         .then(() => console.log('[TradeEye] SW registered'))
@@ -1430,7 +1430,7 @@ Return ONLY the JSON object with no other text.`,
     '1H':{label:'1 Hour',tp1:2,tp2:4,maxSL:60,ctx:'Intraday — SL 20-60 pips typical.'},
     '2H':{label:'2 Hour',tp1:2,tp2:4,maxSL:80,ctx:'Intraday/Swing — SL 30-80 pips typical.'},
     '4H':{label:'4 Hour',tp1:2,tp2:4,maxSL:100,ctx:'Swing — SL 40-100 pips typical.'},
-    'D1':{label:'Daily',tp1:2,tp2:5,maxSL:200,ctx:"Position — SL 80-200 pips. Wilder's original focus."},
+    'D1':{label:'Daily',tp1:2,tp2:5,maxSL:200,ctx:"Position — SL 80-200 pips. Wilder original focus."},
     'W1':{label:'Weekly',tp1:2,tp2:5,maxSL:400,ctx:'Position — SL 150-400 pips typical.'},
     'MN':{label:'Monthly',tp1:2,tp2:5,maxSL:800,ctx:'Long-term — SL 300+ pips typical.'},
   };
@@ -1636,13 +1636,13 @@ Return ONLY the JSON object with no other text.`,
     if (ep && ep > 0) {
       if (dir === 'BUY') {
         if (entry >= ep) {
-          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken above EP. Entry CONFIRMED by Wilder's rule. Whipsaw eliminated.', ep:true});
+          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken above EP. Entry CONFIRMED by Wilder rule. Whipsaw eliminated.', ep:true});
         } else {
           checks.push({ok:false, text:'🛡 EXTREME POINT ' + ep + ' — Price has NOT broken above EP yet. Current price ' + entry + ' is below ' + ep + '. DO NOT ENTER. This is a whipsaw — wait for price to break ' + ep + ' first.', ep:true, blocked:true});
         }
       } else if (dir === 'SELL') {
         if (entry <= ep) {
-          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken below EP. Entry CONFIRMED by Wilder's rule. Whipsaw eliminated.', ep:true});
+          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken below EP. Entry CONFIRMED by Wilder rule. Whipsaw eliminated.', ep:true});
         } else {
           checks.push({ok:false, text:'🛡 EXTREME POINT ' + ep + ' — Price has NOT broken below EP yet. Current price ' + entry + ' is above ' + ep + '. DO NOT ENTER. This is a whipsaw — wait for price to break ' + ep + ' first.', ep:true, blocked:true});
         }
@@ -1774,7 +1774,7 @@ Return ONLY the JSON object with no other text.`,
     let resultBg, resultText;
     if (v.epBlocked) {
       resultBg   = '#92400e';
-      resultText = '🛡  BLOCKED BY EXTREME POINT — DO NOT ENTER. Wait for price to break the EP level. This is Wilder's whipsaw protection.';
+      resultText = '🛡  BLOCKED BY EXTREME POINT — DO NOT ENTER. Wait for price to break the EP level. This is Wilder whipsaw protection.';
     } else if (v.epMissing) {
       resultBg   = v.valid ? '#1d4ed8' : '#dc2626';
       resultText = v.valid ? '⚠  RULES PASS — But enter your Extreme Point above to confirm no whipsaw.' : '✗  TRADE INVALID — Fix issues above.';
