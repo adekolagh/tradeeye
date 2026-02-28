@@ -479,6 +479,13 @@ canvas { display: none; }
 .calc-stat {
   background:#f8fafc; border-radius:12px; padding:14px 10px; text-align:center;
 }
+.preset-btn {
+  padding:6px 10px; border-radius:8px; cursor:pointer;
+  font-size:11px; font-weight:700; letter-spacing:0.5px;
+  border:1px solid #334155; background:#0f172a; color:#94a3b8;
+  font-family:'JetBrains Mono',monospace; transition:all 0.15s;
+}
+.preset-btn:active { background:#1e293b; color:#60a5fa; border-color:#3b82f6; }
 
 /* DESKTOP */
 @media (min-width: 768px) {
@@ -739,9 +746,64 @@ canvas { display: none; }
         <!-- Pair -->
         <div style="margin-bottom:12px;">
           <label class="calc-lbl">Instrument / Pair</label>
-          <select id="c_pair" class="calc-inp" onchange="calcPairChanged()"></select>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="c_pair" class="calc-inp" style="flex:1;" onchange="calcPairChanged()"></select>
+            <input id="c_pair_custom" class="calc-inp" type="text" placeholder="e.g. BEATUSDT"
+              style="flex:1; display:none; text-transform:uppercase;"
+              oninput="this.value=this.value.toUpperCase(); calcUpdate()"
+              autocomplete="off" autocorrect="off" spellcheck="false">
+          </div>
+          <!-- Toggle custom -->
+          <div style="margin-top:6px;">
+            <button id="customToggleBtn" onclick="toggleCustomPair()"
+              style="background:none; border:1px solid var(--border); border-radius:8px; padding:5px 12px;
+                     font-size:11px; font-weight:700; color:var(--muted); cursor:pointer;
+                     font-family:'JetBrains Mono',monospace; letter-spacing:1px;">
+              + USE CUSTOM INSTRUMENT
+            </button>
+          </div>
           <div id="pairNote" style="display:none; padding:10px 14px; border-radius:10px; margin-top:8px;">
             <div id="pairNoteText" style="font-size:12px; font-weight:700; line-height:1.5;"></div>
+          </div>
+        </div>
+
+        <!-- Custom instrument config — shown when unknown pair is used -->
+        <div id="customCfgPanel" style="display:none; background:#1e293b; border-radius:14px; padding:14px; margin-bottom:12px; border:1.5px solid #3b82f6;">
+          <div style="font-size:11px; font-weight:800; color:#60a5fa; letter-spacing:2px; margin-bottom:12px; font-family:'Rajdhani',sans-serif;">
+            ⚙ CUSTOM INSTRUMENT SETTINGS
+          </div>
+          <div style="font-size:11px; font-weight:600; color:#94a3b8; margin-bottom:12px; font-family:'JetBrains Mono',monospace; line-height:1.6;">
+            Set these 3 values for correct pip & P&L calculation on any instrument.
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div>
+              <label class="calc-lbl" style="color:#94a3b8;">Pip Mult</label>
+              <input id="c_custom_pm" class="calc-inp" type="number" step="any" value="10000"
+                placeholder="10000" inputmode="decimal" oninput="calcUpdate()"
+                style="background:#0f172a; border-color:#334155; color:#f8fafc;">
+            </div>
+            <div>
+              <label class="calc-lbl" style="color:#94a3b8;">Pip Val $</label>
+              <input id="c_custom_pv" class="calc-inp" type="number" step="any" value="0.10"
+                placeholder="0.10" inputmode="decimal" oninput="calcUpdate()"
+                style="background:#0f172a; border-color:#334155; color:#f8fafc;">
+            </div>
+            <div>
+              <label class="calc-lbl" style="color:#94a3b8;">Decimals</label>
+              <input id="c_custom_dec" class="calc-inp" type="number" step="1" value="5"
+                placeholder="5" inputmode="numeric" oninput="calcUpdate()"
+                style="background:#0f172a; border-color:#334155; color:#f8fafc;">
+            </div>
+          </div>
+          <!-- Quick presets -->
+          <div style="font-size:10px; font-weight:800; color:#64748b; letter-spacing:1px; margin-bottom:6px; font-family:'Rajdhani',sans-serif;">QUICK PRESETS:</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <button onclick="applyPreset(10000,0.10,5)" class="preset-btn">Forex Major</button>
+            <button onclick="applyPreset(100,0.07,3)"   class="preset-btn">JPY Pair</button>
+            <button onclick="applyPreset(10,0.10,2)"    class="preset-btn">Gold/Oil</button>
+            <button onclick="applyPreset(1,0.10,2)"     class="preset-btn">Bitcoin</button>
+            <button onclick="applyPreset(1000,0.10,4)"  class="preset-btn">Crypto (small)</button>
+            <button onclick="applyPreset(1,0.10,1)"     class="preset-btn">Index</button>
           </div>
         </div>
 
@@ -1379,6 +1441,73 @@ Return ONLY the JSON object with no other text.`,
     document.getElementById('calcIndSec').textContent = 'Wilder Indicators — ' + calcTF + ' Chart';
   }
 
+  // ── CUSTOM PAIR TOGGLE ──
+  let useCustomPair = false;
+
+  function toggleCustomPair() {
+    useCustomPair = !useCustomPair;
+    const sel    = document.getElementById('c_pair');
+    const custom = document.getElementById('c_pair_custom');
+    const panel  = document.getElementById('customCfgPanel');
+    const btn    = document.getElementById('customToggleBtn');
+    if (useCustomPair) {
+      sel.style.display    = 'none';
+      custom.style.display = 'block';
+      panel.style.display  = 'block';
+      btn.textContent      = '← USE STANDARD PAIR';
+      btn.style.color      = '#60a5fa';
+      btn.style.borderColor= '#3b82f6';
+      document.getElementById('pairNote').style.display = 'none';
+    } else {
+      sel.style.display    = 'block';
+      custom.style.display = 'none';
+      panel.style.display  = 'none';
+      btn.textContent      = '+ USE CUSTOM INSTRUMENT';
+      btn.style.color      = '';
+      btn.style.borderColor= '';
+      calcPairChanged();
+    }
+    calcUpdate();
+  }
+
+  function applyPreset(pm, pv, dec) {
+    document.getElementById('c_custom_pm').value  = pm;
+    document.getElementById('c_custom_pv').value  = pv;
+    document.getElementById('c_custom_dec').value = dec;
+    calcUpdate();
+  }
+
+  // Auto-suggest best preset based on pair name patterns
+  function autoSuggestPreset(pair) {
+    const p = pair.toUpperCase();
+    if (p.includes('JPY'))                          applyPreset(100,  0.07, 3); // JPY pairs
+    else if (p.includes('XAU') || p.includes('GOLD')) applyPreset(10, 0.10, 2); // Gold
+    else if (p.includes('XAG') || p.includes('OIL'))  applyPreset(100,0.10, 2); // Silver/Oil
+    else if (p.includes('BTC') || p.includes('ETH'))  applyPreset(1,  0.10, 2); // Large crypto
+    else if (p.includes('USD') && p.length <= 8)   applyPreset(10000,0.10, 5); // Normal forex
+    else if (p.includes('USDT') || p.includes('PERP')) applyPreset(1, 0.10, 5); // Crypto perp
+    else                                            applyPreset(10000,0.10, 5); // Default forex
+  }
+
+  // ── GET ACTIVE CFG — works for both standard and custom pairs ──
+  function getActiveCfg() {
+    if (useCustomPair) {
+      const pm  = +document.getElementById('c_custom_pm').value  || 10000;
+      const pv  = +document.getElementById('c_custom_pv').value  || 0.10;
+      const dec = +document.getElementById('c_custom_dec').value || 5;
+      return { pm, pv, dec, custom: true };
+    }
+    const pair = document.getElementById('c_pair').value;
+    return C_INSTRUMENTS[pair] || { pm:10000, pv:0.10, dec:5 };
+  }
+
+  function getActivePairName() {
+    if (useCustomPair) {
+      return document.getElementById('c_pair_custom').value.trim().toUpperCase() || 'CUSTOM';
+    }
+    return document.getElementById('c_pair').value;
+  }
+
   function calcPairChanged() {
     const pair = document.getElementById('c_pair').value;
     const cfg = C_INSTRUMENTS[pair] || {};
@@ -1412,10 +1541,20 @@ Return ONLY the JSON object with no other text.`,
     const minusDI = document.getElementById('f_ndi').value.trim();
     const rsi     = document.getElementById('f_rsi').value.trim();
 
-    // Set pair if it exists in our database
-    if (pair && C_INSTRUMENTS[pair]) {
-      document.getElementById('c_pair').value = pair;
-      calcPairChanged();
+    // Set pair — use custom mode if not in database
+    if (pair) {
+      if (C_INSTRUMENTS[pair]) {
+        // Known pair — use standard selector
+        if (useCustomPair) toggleCustomPair(); // switch back to standard if needed
+        document.getElementById('c_pair').value = pair;
+        calcPairChanged();
+      } else {
+        // Unknown pair — auto switch to custom mode
+        if (!useCustomPair) toggleCustomPair();
+        document.getElementById('c_pair_custom').value = pair;
+        // Auto-suggest preset based on pair name
+        autoSuggestPreset(pair);
+      }
     }
     // Convert and set timeframe
     const calcTFVal = convertTF(tf);
@@ -1434,7 +1573,7 @@ Return ONLY the JSON object with no other text.`,
     const banner = document.getElementById('calcBanner');
     const bannerTxt = document.getElementById('bannerTxt');
     banner.style.display = 'block';
-    bannerTxt.textContent = (pair || '?') + ' · ' + (calcTFVal || '?') + ' — Data pre-filled ✓';
+    bannerTxt.textContent = (getActivePairName() || pair || '?') + ' · ' + (calcTFVal || '?') + ' — Data pre-filled ✓';
 
     calcUpdate();
     showPanel('calc');
@@ -1474,7 +1613,6 @@ Return ONLY the JSON object with no other text.`,
 
   // ── MAIN CALC UPDATE ──
   function calcUpdate() {
-    const pair    = document.getElementById('c_pair').value;
     const dir     = document.getElementById('c_dir').value;
     const entry   = +document.getElementById('c_entry').value;
     const atr     = +document.getElementById('c_atr').value;
@@ -1497,7 +1635,8 @@ Return ONLY the JSON object with no other text.`,
 
     if (!ready) return;
 
-    const cfg  = C_INSTRUMENTS[pair] || {pm:10000, pv:0.10, dec:5};
+    const cfg  = getActiveCfg();
+    const pair = getActivePairName();
     const tf   = C_TIMEFRAMES[calcTF] || C_TIMEFRAMES['5M'];
     const pm   = cfg.pm;
     const pv   = cfg.pv * (lot / 0.01);
