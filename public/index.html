@@ -691,6 +691,26 @@ canvas { display: none; }
           <input class="finput" id="f_rsi" type="text" placeholder="RSI value" inputmode="decimal" autocomplete="off">
         </div>
 
+        <div class="sect-head" style="margin-top:8px;">
+          <div class="sect-line"></div>
+          <div class="sect-lbl" style="color:#f59e0b;">Extreme Point</div>
+          <div class="sect-line"></div>
+        </div>
+
+        <div class="field" style="border-color:#f59e0b; background:rgba(245,158,11,0.06);">
+          <div class="field-top">
+            <span class="field-lbl" style="color:#f59e0b;">🛡 Extreme Point</span>
+            <span class="badge" style="background:rgba(245,158,11,0.2); color:#f59e0b; border-color:#f59e0b;">WHIPSAW FILTER</span>
+          </div>
+          <input class="finput" id="f_ep" type="text"
+            placeholder="HIGH of crossover candle (BUY) / LOW (SELL)"
+            inputmode="decimal" autocomplete="off"
+            style="border-color:#f59e0b; color:#fef3c7;">
+          <div style="font-size:10px; color:#92400e; font-weight:700; margin-top:4px; padding:0 2px; font-family:'JetBrains Mono',monospace; background:rgba(245,158,11,0.1); border-radius:4px; padding:4px 8px;">
+            Enter manually — candle High/Low where +DI/-DI last crossed
+          </div>
+        </div>
+
       </div><!-- /form-scroll -->
 
       <div class="form-footer">
@@ -861,6 +881,28 @@ canvas { display: none; }
           <div><label class="calc-lbl">RSI</label>
             <input id="c_rsi" class="calc-inp" type="number" step="any" placeholder="73.43" inputmode="decimal" oninput="calcUpdate()"></div>
         </div>
+
+        <!-- EXTREME POINT — Wilder's whipsaw filter -->
+        <div style="margin-top:14px; padding:14px; background:#0f172a; border-radius:14px; border:2px solid #f59e0b;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:16px;">🛡</span>
+            <div style="font-size:12px; font-weight:900; color:#f59e0b; letter-spacing:1.5px; font-family:'Rajdhani',sans-serif;">EXTREME POINT — WILDER'S WHIPSAW FILTER</div>
+          </div>
+          <div style="font-size:11px; font-weight:600; color:#94a3b8; font-family:'JetBrains Mono',monospace; line-height:1.7; margin-bottom:12px;">
+            The candle where +DI/-DI crossed sets the Extreme Point.<br>
+            BUY → HIGH of that crossover candle.<br>
+            SELL → LOW of that crossover candle.<br>
+            <span style="color:#f59e0b; font-weight:800;">Price MUST break this level before you enter. No break = NO TRADE.</span>
+          </div>
+          <div>
+            <label class="calc-lbl" style="color:#f59e0b;">Extreme Point Price</label>
+            <input id="c_ep" class="calc-inp" type="number" step="any"
+              placeholder="Enter crossover candle High (BUY) or Low (SELL)"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#1e293b; border-color:#f59e0b; color:#fef3c7; font-weight:800;">
+          </div>
+          <div id="epStatus" style="display:none; margin-top:10px; padding:12px 14px; border-radius:10px; text-align:center;"></div>
+        </div>
       </div>
 
       <!-- VALIDATION -->
@@ -931,7 +973,8 @@ canvas { display: none; }
     adx:      'f_adx',
     plus_di:  'f_pdi',
     minus_di: 'f_ndi',
-    rsi:      'f_rsi'
+    rsi:      'f_rsi',
+    ep:       'f_ep'
   };
 
   const ALL_IDS = Object.values(FIELD_MAP);
@@ -1178,7 +1221,7 @@ canvas { display: none; }
           system: `You are a precise trading chart data extractor for TradingView charts using Wilder indicators. Extract values and return ONLY a valid JSON object — no markdown, no explanation, no backticks.
 
 Return exactly these keys (use null if a value cannot be found):
-{"pair":"","timeframe":"","entry":"","sar":"","atr":"","adx":"","plus_di":"","minus_di":"","rsi":""}
+{"pair":"","timeframe":"","entry":"","sar":"","atr":"","adx":"","plus_di":"","minus_di":"","rsi":"","ep":""}
 
 Follow these exact rules for each field:
 
@@ -1187,6 +1230,7 @@ PAIR: Top-left corner instrument symbol. Read it exactly as shown — it may inc
 TIMEFRAME: In the top toolbar, find the currently SELECTED/HIGHLIGHTED timeframe button. It appears bolder, brighter or highlighted compared to others. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return exactly as shown e.g. "5m", "1h", "4h", "D". Do NOT guess — only return the visually active one.
 
 ENTRY: Find the OHLC bar at the very top of the chart. It shows O H L C values. The ENTRY is the C (close) value — it appears after the letter "C" followed by a number e.g. "C5,238.070" or "C0.20610". Do NOT use the price numbers on the right-side vertical price scale. Do NOT use the buy/sell box prices on the left. Use ONLY the C: close price from the top OHLC line.
+EP: The Extreme Point is the HIGH price of the most recent candle where +DI crossed above -DI (for a bullish setup), or the LOW price of the most recent candle where -DI crossed above +DI (for a bearish setup). Look at where the ADX Wilder Dashboard DI lines cross on the chart — find that crossover candle and return its high (bullish) or low (bearish). Return null if you cannot determine this with confidence.
 
 SAR: Find the label "Wilder Structure (Clean Simple)" in the top-left indicator area. The SAR value is the LAST number shown on that line e.g. "Wilder Structure (Clean Simple) 14 20 0.02 0.2  62839.2" → return "62839.2". Also check the right side for a pink/red box labeled "Wilder Structure (Clean Simple):SAR".
 
@@ -1268,7 +1312,8 @@ Return ONLY the JSON object with no other text.`,
     const labels = {
       f_pair:'Pair', f_tf:'Timeframe', f_entry:'Entry',
       f_sar:'SAR',   f_atr:'ATR',      f_adx:'ADX',
-      f_pdi:'+DI',   f_ndi:'-DI',      f_rsi:'RSI'
+      f_pdi:'+DI',   f_ndi:'-DI',      f_rsi:'RSI',
+      f_ep:'Extreme Point'
     };
     const lines = ALL_IDS
       .filter(id => document.getElementById(id).value)
@@ -1568,6 +1613,8 @@ Return ONLY the JSON object with no other text.`,
     if (plusDI)  document.getElementById('c_pdi').value   = plusDI;
     if (minusDI) document.getElementById('c_ndi').value   = minusDI;
     if (rsi)     document.getElementById('c_rsi').value   = rsi;
+    // EP — clear it when new scan arrives so user must confirm it manually
+    document.getElementById('c_ep').value = '';
 
     // Show banner
     const banner = document.getElementById('calcBanner');
@@ -1580,35 +1627,77 @@ Return ONLY the JSON object with no other text.`,
     toast('🚀 Sent to Calculator!');
   }
 
-  // ── VALIDATION ──
-  function runCalcValidation(adx, pdi, mdi, rsi, entry, sar, dir) {
+  // ── VALIDATION — Wilder's full rule chain including Extreme Point ──
+  function runCalcValidation(adx, pdi, mdi, rsi, entry, sar, dir, ep) {
     const checks = [];
-    if (adx < 20)      checks.push({ok:false, text:'ADX below 20 — No trend. Do not trade.'});
-    else if (adx < 25) checks.push({ok:null,  text:'ADX ' + adx.toFixed(1) + ' — Weak trend. Trade with caution.'});
-    else               checks.push({ok:true,  text:'ADX ' + adx.toFixed(1) + ' — Strong trend confirmed.'});
 
+    // ── STEP 0: EXTREME POINT — WILDER'S HARDEST RULE ──
+    // This runs FIRST. If EP is entered and price has not broken it, trade is BLOCKED regardless of everything else.
+    if (ep && ep > 0) {
+      if (dir === 'BUY') {
+        if (entry >= ep) {
+          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken above EP. Entry CONFIRMED by Wilder's rule. Whipsaw eliminated.', ep:true});
+        } else {
+          checks.push({ok:false, text:'🛡 EXTREME POINT ' + ep + ' — Price has NOT broken above EP yet. Current price ' + entry + ' is below ' + ep + '. DO NOT ENTER. This is a whipsaw — wait for price to break ' + ep + ' first.', ep:true, blocked:true});
+        }
+      } else if (dir === 'SELL') {
+        if (entry <= ep) {
+          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken below EP. Entry CONFIRMED by Wilder's rule. Whipsaw eliminated.', ep:true});
+        } else {
+          checks.push({ok:false, text:'🛡 EXTREME POINT ' + ep + ' — Price has NOT broken below EP yet. Current price ' + entry + ' is above ' + ep + '. DO NOT ENTER. This is a whipsaw — wait for price to break ' + ep + ' first.', ep:true, blocked:true});
+        }
+      }
+    } else {
+      checks.push({ok:null, text:'🛡 EXTREME POINT — Not entered. Find the candle where +DI/-DI crossed. Enter its High (BUY) or Low (SELL) above to confirm the entry is not a whipsaw.', ep:true});
+    }
+
+    // ── STEP 1: ADX — THE GATEKEEPER ──
+    if (adx < 20)      checks.push({ok:false, text:'ADX ' + adx.toFixed(1) + ' — Below 20. No trend exists. Do not trade on any timeframe.'});
+    else if (adx < 25) checks.push({ok:null,  text:'ADX ' + adx.toFixed(1) + ' — Weak trend developing (20-25). Trade with caution.'});
+    else               checks.push({ok:true,  text:'ADX ' + adx.toFixed(1) + ' — Strong trend confirmed (25+).'});
+
+    // ── STEP 2: DI DIRECTION ──
     if (dir === 'BUY') {
       checks.push(pdi > mdi
-        ? {ok:true,  text:'+DI ' + pdi + ' > -DI ' + mdi + ' — Bullish confirmed.'}
-        : {ok:false, text:'-DI dominates. Conflicts with BUY. Do not enter.'});
-      checks.push(sar < entry
-        ? {ok:true,  text:'SAR below price — Uptrend valid.'}
-        : {ok:false, text:'SAR above price — Conflicts with BUY. Wait for SAR flip.'});
-      checks.push(rsi > 50
-        ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Bullish momentum confirmed.'}
-        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Momentum not confirming BUY yet.'});
+        ? {ok:true,  text:'+DI ' + pdi + ' > -DI ' + mdi + ' — Bullish direction confirmed.'}
+        : {ok:false, text:'-DI ' + mdi + ' > +DI ' + pdi + ' — Bearish DI dominates. Conflicts with BUY. Do not enter.'});
     } else if (dir === 'SELL') {
       checks.push(mdi > pdi
-        ? {ok:true,  text:'-DI ' + mdi + ' > +DI ' + pdi + ' — Bearish confirmed.'}
-        : {ok:false, text:'+DI dominates. Conflicts with SELL. Do not enter.'});
+        ? {ok:true,  text:'-DI ' + mdi + ' > +DI ' + pdi + ' — Bearish direction confirmed.'}
+        : {ok:false, text:'+DI ' + pdi + ' > -DI ' + mdi + ' — Bullish DI dominates. Conflicts with SELL. Do not enter.'});
+    }
+
+    // ── STEP 3: SAR CONFIRMATION ──
+    if (dir === 'BUY') {
+      checks.push(sar < entry
+        ? {ok:true,  text:'SAR ' + sar + ' below price — Uptrend structure valid.'}
+        : {ok:false, text:'SAR ' + sar + ' above price — Conflicts with BUY. Wait for SAR to flip below price.'});
+    } else if (dir === 'SELL') {
       checks.push(sar > entry
-        ? {ok:true,  text:'SAR above price — Downtrend valid.'}
-        : {ok:false, text:'SAR below price — Conflicts with SELL. Wait for SAR flip.'});
+        ? {ok:true,  text:'SAR ' + sar + ' above price — Downtrend structure valid.'}
+        : {ok:false, text:'SAR ' + sar + ' below price — Conflicts with SELL. Wait for SAR to flip above price.'});
+    }
+
+    // ── STEP 4: RSI MOMENTUM ──
+    if (dir === 'BUY') {
+      checks.push(rsi > 50
+        ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Bullish momentum confirmed.'}
+        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Momentum not yet confirming BUY. Monitor.'});
+    } else if (dir === 'SELL') {
       checks.push(rsi < 50
         ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Bearish momentum confirmed.'}
-        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Momentum not confirming SELL yet.'});
+        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Momentum not yet confirming SELL. Monitor.'});
     }
-    return { checks, valid: !checks.some(c => c.ok === false) };
+
+    // EP blocked overrides everything — even if other checks pass
+    const epBlocked = checks.some(c => c.blocked);
+    const anyFail   = checks.some(c => c.ok === false);
+    return {
+      checks,
+      valid:     !anyFail,
+      epBlocked: epBlocked,
+      epMissing: !(ep && ep > 0),
+    };
   }
 
   // ── MAIN CALC UPDATE ──
@@ -1621,6 +1710,7 @@ Return ONLY the JSON object with no other text.`,
     const pdi     = +document.getElementById('c_pdi').value;
     const ndi     = +document.getElementById('c_ndi').value;
     const rsi     = +document.getElementById('c_rsi').value;
+    const ep      = +document.getElementById('c_ep').value || 0;
     const lot     = +document.getElementById('c_lot').value;
     const balance = +document.getElementById('c_balance').value;
     const lev     = +document.getElementById('c_lev').value;
@@ -1667,7 +1757,7 @@ Return ONLY the JSON object with no other text.`,
     document.getElementById('c_dir').style.color = dirColor;
 
     // ── VALIDATION ──
-    const v = runCalcValidation(adx, pdi, ndi, rsi, entry, sar, dir);
+    const v = runCalcValidation(adx, pdi, ndi, rsi, entry, sar, dir, ep);
     const checksHTML = v.checks.map(c => {
       const bg     = c.ok===true?'#f0fdf4':c.ok===false?'#fef2f2':'#fffbeb';
       const border = c.ok===true?'#86efac':c.ok===false?'#fca5a5':'#fcd34d';
@@ -1680,16 +1770,36 @@ Return ONLY the JSON object with no other text.`,
     }).join('');
     document.getElementById('validChecks').innerHTML = checksHTML;
     document.getElementById('validSec').textContent = 'Wilder Rule Check — ' + C_TIMEFRAMES[calcTF].label;
-    document.getElementById('validResult').style.background = v.valid ? '#16a34a' : '#dc2626';
-    document.getElementById('validResult').innerHTML = `<span style="font-size:14px;font-weight:900;color:#fff;font-family:'Rajdhani',sans-serif;">
-      ${v.valid ? '✓  TRADE VALID — All Rules Passed' : '✗  TRADE INVALID — Fix Issues Above'}</span>`;
+    // EP blocked = HARD STOP regardless of other rules
+    let resultBg, resultText;
+    if (v.epBlocked) {
+      resultBg   = '#92400e';
+      resultText = '🛡  BLOCKED BY EXTREME POINT — DO NOT ENTER. Wait for price to break the EP level. This is Wilder's whipsaw protection.';
+    } else if (v.epMissing) {
+      resultBg   = v.valid ? '#1d4ed8' : '#dc2626';
+      resultText = v.valid ? '⚠  RULES PASS — But enter your Extreme Point above to confirm no whipsaw.' : '✗  TRADE INVALID — Fix issues above.';
+    } else {
+      resultBg   = v.valid ? '#16a34a' : '#dc2626';
+      resultText = v.valid ? '✓  TRADE CONFIRMED — All Wilder Rules Passed including Extreme Point.' : '✗  TRADE INVALID — Fix issues above.';
+    }
+    document.getElementById('validResult').style.background = resultBg;
+    document.getElementById('validResult').innerHTML = `<span style="font-size:13px;font-weight:900;color:#fff;font-family:'Rajdhani',sans-serif;line-height:1.5;">${resultText}</span>`;
 
-    // ── TRADE HEADER ──
+    // ── TRADE HEADER — color changes based on EP status ──
     const th = document.getElementById('tradeHeader');
-    th.style.background = dirColor;
-    document.getElementById('tradeHeaderSub').textContent = C_TIMEFRAMES[calcTF].label.toUpperCase() + ' CHART — ACTIVE TRADE';
+    // Red/amber if EP is blocking or missing, green/red if confirmed
+    if (v.epBlocked) {
+      th.style.background = '#92400e';
+      document.getElementById('tradeHeaderSub').textContent = '⛔ ENTRY BLOCKED — EXTREME POINT NOT BROKEN';
+    } else if (v.epMissing) {
+      th.style.background = '#1e40af';
+      document.getElementById('tradeHeaderSub').textContent = '⚠ EP NOT SET — ' + C_TIMEFRAMES[calcTF].label.toUpperCase() + ' CHART';
+    } else {
+      th.style.background = dirColor;
+      document.getElementById('tradeHeaderSub').textContent = '✓ EP CONFIRMED — ' + C_TIMEFRAMES[calcTF].label.toUpperCase() + ' CHART';
+    }
     document.getElementById('tradeHeaderMain').textContent = dir + ' ' + pair;
-    document.getElementById('tradeHeaderEntry').textContent = 'Entry @ ' + fmt(entry);
+    document.getElementById('tradeHeaderEntry').textContent = 'Entry @ ' + fmt(entry) + (ep ? '  |  EP: ' + ep : '');
 
     // ── LEVELS ──
     document.getElementById('levelsSec').textContent = 'Trade Levels — ' + calcTF;
