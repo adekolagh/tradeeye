@@ -1575,16 +1575,19 @@ Return ONLY the JSON object with no other text.`,
   }
 
   // ── FILL CALC FROM SCANNER ──
+  // Strip commas from any number string — type="number" inputs reject "1,921.17"
+  function stripCommas(v) { return v.replace(/,/g, ''); }
+
   function fillCalcFromScan() {
     const pair    = document.getElementById('f_pair').value.trim().toUpperCase();
     const tf      = document.getElementById('f_tf').value.trim();
-    const entry   = document.getElementById('f_entry').value.trim();
-    const sar     = document.getElementById('f_sar').value.trim();
-    const atr     = document.getElementById('f_atr').value.trim();
-    const adx     = document.getElementById('f_adx').value.trim();
-    const plusDI  = document.getElementById('f_pdi').value.trim();
-    const minusDI = document.getElementById('f_ndi').value.trim();
-    const rsi     = document.getElementById('f_rsi').value.trim();
+    const entry   = stripCommas(document.getElementById('f_entry').value.trim());
+    const sar     = stripCommas(document.getElementById('f_sar').value.trim());
+    const atr     = stripCommas(document.getElementById('f_atr').value.trim());
+    const adx     = stripCommas(document.getElementById('f_adx').value.trim());
+    const plusDI  = stripCommas(document.getElementById('f_pdi').value.trim());
+    const minusDI = stripCommas(document.getElementById('f_ndi').value.trim());
+    const rsi     = stripCommas(document.getElementById('f_rsi').value.trim());
 
     // Set pair — use custom mode if not in database
     if (pair) {
