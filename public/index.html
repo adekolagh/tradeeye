@@ -1630,69 +1630,147 @@ Return ONLY the JSON object with no other text.`,
     toast('🚀 Sent to Calculator!');
   }
 
-  // ── VALIDATION — Wilder's full rule chain including Extreme Point ──
+  // ══════════════════════════════════════════════════════
+  // ── WILDER VALIDATION — STRICTLY AS WELLES WILDER WROTE
+  // ══════════════════════════════════════════════════════
+  //
+  // ADX < 20   = RANGING MARKET  — RSI is primary tool (30/70)
+  // ADX 20-25  = NO MAN'S LAND   — DO NOT TRADE. Period.
+  // ADX > 25   = TRENDING MARKET — DI crossover + EP + SAR trail
+  //
+  // SL = SAR EXACTLY. Always. No other calculation.
+  // DI lines are IRRELEVANT in ranging market.
+  // RSI 30/70 is IRRELEVANT in trending market (used as direction only).
+  // ══════════════════════════════════════════════════════
+
+  function getMarketMode(adx) {
+    if (adx < 20)  return 'RANGE';
+    if (adx < 25)  return 'NOmans';
+    return 'TREND';
+  }
+
   function runCalcValidation(adx, pdi, mdi, rsi, entry, sar, dir, ep) {
     const checks = [];
+    const mode   = getMarketMode(adx);
 
-    // ── STEP 0: EXTREME POINT — WILDER'S HARDEST RULE ──
-    // This runs FIRST. If EP is entered and price has not broken it, trade is BLOCKED regardless of everything else.
+    // ══════════════════════
+    // NO MAN'S LAND — HARD BLOCK
+    // ADX 20-25: Market is transitioning. Neither system applies.
+    // Wilder: wait for ADX to declare itself above 25 or fall below 20.
+    // ══════════════════════
+    if (mode === 'NOmans') {
+      checks.push({ok:false, noMans:true, text:
+        'ADX ' + adx.toFixed(1) + ' — No Mans Land (20-25). Market is transitioning. ' +
+        'This timeframe has no valid setup. Close this chart. ' +
+        'Wait for ADX to rise above 25 (trend) or fall below 20 (range).'
+      });
+      return { checks, valid:false, epBlocked:false, epMissing:true, mode, noMans:true };
+    }
+
+    // ══════════════════════
+    // RANGING MARKET — ADX < 20
+    // RSI is the PRIMARY signal. DI lines are ignored completely.
+    // Wilder: RSI above 70 = overbought = SELL. RSI below 30 = oversold = BUY.
+    // ══════════════════════
+    if (mode === 'RANGE') {
+      checks.push({ok:true, text:'ADX ' + adx.toFixed(1) + ' — Ranging market confirmed. RSI is the primary tool on this timeframe.'});
+
+      if (dir === 'SELL') {
+        if (rsi >= 70) {
+          checks.push({ok:true,  text:'RSI ' + rsi.toFixed(1) + ' — Overbought (70+). SELL signal confirmed by Wilder ranging rule.'});
+        } else if (rsi >= 60) {
+          checks.push({ok:null,  text:'RSI ' + rsi.toFixed(1) + ' — Approaching overbought. Wait for RSI to reach 70 before entering SELL.'});
+        } else {
+          checks.push({ok:false, text:'RSI ' + rsi.toFixed(1) + ' — Not overbought. RSI must reach 70+ for a SELL in ranging market. Do not enter.'});
+        }
+      } else if (dir === 'BUY') {
+        if (rsi <= 30) {
+          checks.push({ok:true,  text:'RSI ' + rsi.toFixed(1) + ' — Oversold (30 or below). BUY signal confirmed by Wilder ranging rule.'});
+        } else if (rsi <= 40) {
+          checks.push({ok:null,  text:'RSI ' + rsi.toFixed(1) + ' — Approaching oversold. Wait for RSI to reach 30 before entering BUY.'});
+        } else {
+          checks.push({ok:false, text:'RSI ' + rsi.toFixed(1) + ' — Not oversold. RSI must reach 30 or below for a BUY in ranging market. Do not enter.'});
+        }
+      }
+
+      // SAR still acts as stop loss in range mode
+      if (dir === 'BUY') {
+        checks.push(sar < entry
+          ? {ok:true,  text:'SAR ' + sar + ' below price — Stop loss position valid.'}
+          : {ok:false, text:'SAR ' + sar + ' is above price — Wait for SAR to flip below before entering BUY.'});
+      } else if (dir === 'SELL') {
+        checks.push(sar > entry
+          ? {ok:true,  text:'SAR ' + sar + ' above price — Stop loss position valid.'}
+          : {ok:false, text:'SAR ' + sar + ' is below price — Wait for SAR to flip above before entering SELL.'});
+      }
+
+      // DI note — informational only, does not block
+      checks.push({ok:null, text:'DI lines — Not used in ranging market. Wilder uses RSI 30/70 only when ADX is below 20.'});
+
+      const anyFail = checks.some(c => c.ok === false);
+      return { checks, valid:!anyFail, epBlocked:false, epMissing:false, mode };
+    }
+
+    // ══════════════════════
+    // TRENDING MARKET — ADX > 25
+    // Full Wilder trend rules apply in this exact order.
+    // ══════════════════════
+    checks.push({ok:true, text:'ADX ' + adx.toFixed(1) + ' — Trending market confirmed (25+). Full Wilder trend rules apply.'});
+
+    // ── STEP 1: EXTREME POINT — RUNS FIRST, BLOCKS EVERYTHING ──
+    // The single most important rule. No EP break = no trade regardless of anything else.
     if (ep && ep > 0) {
       if (dir === 'BUY') {
         if (entry >= ep) {
-          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken above EP. Entry CONFIRMED by Wilder rule. Whipsaw eliminated.', ep:true});
+          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken above EP. Whipsaw eliminated. Entry confirmed.', ep:true});
         } else {
-          checks.push({ok:false, text:'🛡 EXTREME POINT ' + ep + ' — Price has NOT broken above EP yet. Current price ' + entry + ' is below ' + ep + '. DO NOT ENTER. This is a whipsaw — wait for price to break ' + ep + ' first.', ep:true, blocked:true});
+          checks.push({ok:false, text:'🛡 EXTREME POINT ' + ep + ' — Price at ' + entry + ' has NOT broken above ' + ep + ' yet. DO NOT ENTER. This is the whipsaw zone. Wait for price to break ' + ep + '.', ep:true, blocked:true});
         }
       } else if (dir === 'SELL') {
         if (entry <= ep) {
-          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken below EP. Entry CONFIRMED by Wilder rule. Whipsaw eliminated.', ep:true});
+          checks.push({ok:true, text:'🛡 EXTREME POINT ' + ep + ' — Price has broken below EP. Whipsaw eliminated. Entry confirmed.', ep:true});
         } else {
-          checks.push({ok:false, text:'🛡 EXTREME POINT ' + ep + ' — Price has NOT broken below EP yet. Current price ' + entry + ' is above ' + ep + '. DO NOT ENTER. This is a whipsaw — wait for price to break ' + ep + ' first.', ep:true, blocked:true});
+          checks.push({ok:false, text:'🛡 EXTREME POINT ' + ep + ' — Price at ' + entry + ' has NOT broken below ' + ep + ' yet. DO NOT ENTER. This is the whipsaw zone. Wait for price to break ' + ep + '.', ep:true, blocked:true});
         }
       }
     } else {
-      checks.push({ok:null, text:'🛡 EXTREME POINT — Not entered. Find the candle where +DI/-DI crossed. Enter its High (BUY) or Low (SELL) above to confirm the entry is not a whipsaw.', ep:true});
+      checks.push({ok:null, text:'🛡 EXTREME POINT — Not entered. Find the candle where DI lines crossed. Enter its High (BUY) or Low (SELL) to confirm this is not a whipsaw.', ep:true});
     }
-
-    // ── STEP 1: ADX — THE GATEKEEPER ──
-    if (adx < 20)      checks.push({ok:false, text:'ADX ' + adx.toFixed(1) + ' — Below 20. No trend exists. Do not trade on any timeframe.'});
-    else if (adx < 25) checks.push({ok:null,  text:'ADX ' + adx.toFixed(1) + ' — Weak trend developing (20-25). Trade with caution.'});
-    else               checks.push({ok:true,  text:'ADX ' + adx.toFixed(1) + ' — Strong trend confirmed (25+).'});
 
     // ── STEP 2: DI DIRECTION ──
     if (dir === 'BUY') {
       checks.push(pdi > mdi
         ? {ok:true,  text:'+DI ' + pdi + ' > -DI ' + mdi + ' — Bullish direction confirmed.'}
-        : {ok:false, text:'-DI ' + mdi + ' > +DI ' + pdi + ' — Bearish DI dominates. Conflicts with BUY. Do not enter.'});
+        : {ok:false, text:'-DI ' + mdi + ' > +DI ' + pdi + ' — Bearish DI dominates. Conflicts with BUY on this timeframe. Do not enter. Close this chart.'});
     } else if (dir === 'SELL') {
       checks.push(mdi > pdi
         ? {ok:true,  text:'-DI ' + mdi + ' > +DI ' + pdi + ' — Bearish direction confirmed.'}
-        : {ok:false, text:'+DI ' + pdi + ' > -DI ' + mdi + ' — Bullish DI dominates. Conflicts with SELL. Do not enter.'});
+        : {ok:false, text:'+DI ' + pdi + ' > -DI ' + mdi + ' — Bullish DI dominates. Conflicts with SELL on this timeframe. Do not enter. Close this chart.'});
     }
 
-    // ── STEP 3: SAR CONFIRMATION ──
+    // ── STEP 3: SAR POSITION ──
     if (dir === 'BUY') {
       checks.push(sar < entry
-        ? {ok:true,  text:'SAR ' + sar + ' below price — Uptrend structure valid.'}
-        : {ok:false, text:'SAR ' + sar + ' above price — Conflicts with BUY. Wait for SAR to flip below price.'});
+        ? {ok:true,  text:'SAR ' + sar + ' below price — Uptrend structure valid. SAR is your stop loss.'}
+        : {ok:false, text:'SAR ' + sar + ' is above price. Conflicts with BUY. Do not enter. Close this chart.'});
     } else if (dir === 'SELL') {
       checks.push(sar > entry
-        ? {ok:true,  text:'SAR ' + sar + ' above price — Downtrend structure valid.'}
-        : {ok:false, text:'SAR ' + sar + ' below price — Conflicts with SELL. Wait for SAR to flip above price.'});
+        ? {ok:true,  text:'SAR ' + sar + ' above price — Downtrend structure valid. SAR is your stop loss.'}
+        : {ok:false, text:'SAR ' + sar + ' is below price. Conflicts with SELL. Do not enter. Close this chart.'});
     }
 
-    // ── STEP 4: RSI MOMENTUM ──
+    // ── STEP 4: RSI — MOMENTUM DIRECTION ONLY in trending market ──
+    // NOT overbought/oversold here. Just confirming trend direction.
     if (dir === 'BUY') {
       checks.push(rsi > 50
-        ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Bullish momentum confirmed.'}
-        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Momentum not yet confirming BUY. Monitor.'});
+        ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Bullish momentum confirming the trend direction.'}
+        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Trend momentum not yet fully confirming. Monitor closely.'});
     } else if (dir === 'SELL') {
       checks.push(rsi < 50
-        ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Bearish momentum confirmed.'}
-        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Momentum not yet confirming SELL. Monitor.'});
+        ? {ok:true, text:'RSI ' + rsi.toFixed(1) + ' below 50 — Bearish momentum confirming the trend direction.'}
+        : {ok:null, text:'RSI ' + rsi.toFixed(1) + ' above 50 — Trend momentum not yet fully confirming. Monitor closely.'});
     }
 
-    // EP blocked overrides everything — even if other checks pass
     const epBlocked = checks.some(c => c.blocked);
     const anyFail   = checks.some(c => c.ok === false);
     return {
@@ -1700,6 +1778,7 @@ Return ONLY the JSON object with no other text.`,
       valid:     !anyFail,
       epBlocked: epBlocked,
       epMissing: !(ep && ep > 0),
+      mode,
     };
   }
 
@@ -1728,40 +1807,61 @@ Return ONLY the JSON object with no other text.`,
 
     if (!ready) return;
 
-    const cfg  = getActiveCfg();
-    const pair = getActivePairName();
-    const tf   = C_TIMEFRAMES[calcTF] || C_TIMEFRAMES['5M'];
-    const pm   = cfg.pm;
-    const pv   = cfg.pv * (lot / 0.01);
-    const fmt  = v => v.toFixed(cfg.dec);
+    const cfg     = getActiveCfg();
+    const pair    = getActivePairName();
+    const tf      = C_TIMEFRAMES[calcTF] || C_TIMEFRAMES['5M'];
+    const pm      = cfg.pm;
+    const pv      = cfg.pv * (lot / 0.01);
+    const fmt     = v => v.toFixed(cfg.dec);
+    const dirMult = dir === 'BUY' ? 1 : -1;
+    const dirColor = dir === 'BUY' ? '#16a34a' : '#dc2626';
 
-    const sarPips  = Math.abs(entry - sar) * pm;
+    // ══════════════════════════════════════════════
+    // SL = SAR EXACTLY — Wilder's Significant Point
+    // No other calculation. SAR is the stop. Period.
+    // ══════════════════════════════════════════════
+    const slPrice = sar;                                  // SAR IS the stop loss
+    const slPips  = Math.abs(entry - sar) * pm;          // pips distance for display
+    const slLoss  = slPips * pv;                         // dollar risk
+
+    // ══════════════════════════════════════════════
+    // TP = ATR BASED — Wilder's target calculation
+    // TP1 = 2×ATR — partial exit, move SL to breakeven
+    // TP2 = 3×ATR — second partial exit
+    // TRAIL = SAR follows price — hold until SAR flips
+    // ══════════════════════════════════════════════
     const atrPips  = atr * pm;
-    const slPips   = Math.max(sarPips, atrPips);
-    const tp1Pips  = atrPips * tf.tp1;
-    const tp2Pips  = atrPips * tf.tp2;
-    const dirMult  = dir === 'BUY' ? 1 : -1;
-
-    const slPrice  = fmt(entry - dirMult * (slPips / pm));
+    const tp1Pips  = atrPips * 2;
+    const tp2Pips  = atrPips * 3;
     const tp1Price = fmt(entry + dirMult * (tp1Pips / pm));
     const tp2Price = fmt(entry + dirMult * (tp2Pips / pm));
-    const slLoss   = slPips * pv;
     const tp1Prof  = tp1Pips * pv;
     const tp2Prof  = tp2Pips * pv;
-    const rr1      = (tp1Pips / slPips).toFixed(2);
-    const rr2      = (tp2Pips / slPips).toFixed(2);
+    const rr1      = slPips > 0 ? (tp1Pips / slPips).toFixed(2) : '—';
+    const rr2      = slPips > 0 ? (tp2Pips / slPips).toFixed(2) : '—';
     const riskPct  = (slLoss / balance * 100).toFixed(1);
     const margin   = (lot * 100000) / lev;
     const free     = balance - margin;
-    const sarBasis = sarPips >= atrPips;
+    const mode     = getMarketMode(adx);
 
-    // Direction color
-    const dirColor = dir === 'BUY' ? '#16a34a' : '#dc2626';
     document.getElementById('c_dir').style.color = dirColor;
 
     // ── VALIDATION ──
     const v = runCalcValidation(adx, pdi, ndi, rsi, entry, sar, dir, ep);
+
+    // ── RENDER CHECKS ──
     const checksHTML = v.checks.map(c => {
+      // EP check gets special amber styling
+      if (c.ep) {
+        const bg     = c.ok===true ?'#fef3c7':c.ok===false?'#7c2d12':'#1c1917';
+        const border = c.ok===true ?'#f59e0b':c.ok===false?'#f97316':'#78716c';
+        const color  = c.ok===true ?'#92400e':c.ok===false?'#fed7aa':'#d6d3d1';
+        const icon   = c.ok===true ?'🛡':c.ok===false?'🛡':'🛡';
+        return `<div style="display:flex;align-items:flex-start;gap:10px;padding:13px 14px;border-radius:12px;background:${bg};border:2px solid ${border};">
+          <span style="font-size:17px;">${icon}</span>
+          <span style="font-size:12px;font-weight:700;line-height:1.6;color:${color};font-family:'JetBrains Mono',monospace;">${c.text}</span>
+        </div>`;
+      }
       const bg     = c.ok===true?'#f0fdf4':c.ok===false?'#fef2f2':'#fffbeb';
       const border = c.ok===true?'#86efac':c.ok===false?'#fca5a5':'#fcd34d';
       const color  = c.ok===true?'#15803d':c.ok===false?'#b91c1c':'#92400e';
@@ -1772,57 +1872,99 @@ Return ONLY the JSON object with no other text.`,
       </div>`;
     }).join('');
     document.getElementById('validChecks').innerHTML = checksHTML;
-    document.getElementById('validSec').textContent = 'Wilder Rule Check — ' + C_TIMEFRAMES[calcTF].label;
-    // EP blocked = HARD STOP regardless of other rules
+
+    // Mode label in section header
+    const modeLabel = mode==='RANGE' ? 'RANGING MARKET — RSI 30/70' : mode==='NOmans' ? 'NO MANS LAND — DO NOT TRADE' : 'TRENDING MARKET — DI + EP + SAR';
+    document.getElementById('validSec').textContent = 'Wilder Rule Check — ' + C_TIMEFRAMES[calcTF].label + ' · ' + modeLabel;
+
+    // ── RESULT BANNER ──
     let resultBg, resultText;
-    if (v.epBlocked) {
-      resultBg   = '#92400e';
-      resultText = '🛡  BLOCKED BY EXTREME POINT — DO NOT ENTER. Wait for price to break the EP level. This is Wilder whipsaw protection.';
-    } else if (v.epMissing) {
-      resultBg   = v.valid ? '#1d4ed8' : '#dc2626';
-      resultText = v.valid ? '⚠  RULES PASS — But enter your Extreme Point above to confirm no whipsaw.' : '✗  TRADE INVALID — Fix issues above.';
+    if (v.noMans) {
+      resultBg   = '#374151';
+      resultText = '⏸  NO MANS LAND — ADX ' + adx.toFixed(1) + ' is between 20-25. This timeframe has no valid setup. Close this chart and wait.';
+    } else if (v.epBlocked) {
+      resultBg   = '#7c2d12';
+      resultText = '🛡  EXTREME POINT NOT BROKEN — DO NOT ENTER. Price must break ' + ep + ' first. Wait or skip this trade entirely.';
+    } else if (mode === 'TREND' && v.epMissing && v.valid) {
+      resultBg   = '#1d4ed8';
+      resultText = '⚠  TREND RULES PASS — Enter Extreme Point above to confirm no whipsaw before entering.';
     } else {
       resultBg   = v.valid ? '#16a34a' : '#dc2626';
-      resultText = v.valid ? '✓  TRADE CONFIRMED — All Wilder Rules Passed including Extreme Point.' : '✗  TRADE INVALID — Fix issues above.';
+      resultText = v.valid
+        ? (mode==='RANGE' ? '✓  RANGE TRADE CONFIRMED — RSI signal valid. Take profit quickly. Do not trail.' : '✓  TREND TRADE CONFIRMED — All Wilder rules passed. Trail SAR until it flips.')
+        : '✗  NO SETUP ON THIS TIMEFRAME — Close this chart. Do not look for alternatives.';
     }
     document.getElementById('validResult').style.background = resultBg;
     document.getElementById('validResult').innerHTML = `<span style="font-size:13px;font-weight:900;color:#fff;font-family:'Rajdhani',sans-serif;line-height:1.5;">${resultText}</span>`;
 
-    // ── TRADE HEADER — color changes based on EP status ──
+    // ── TRADE HEADER ──
     const th = document.getElementById('tradeHeader');
-    // Red/amber if EP is blocking or missing, green/red if confirmed
-    if (v.epBlocked) {
-      th.style.background = '#92400e';
-      document.getElementById('tradeHeaderSub').textContent = '⛔ ENTRY BLOCKED — EXTREME POINT NOT BROKEN';
-    } else if (v.epMissing) {
+    if (v.noMans) {
+      th.style.background = '#374151';
+      document.getElementById('tradeHeaderSub').textContent = '⏸ NO MANS LAND — ' + C_TIMEFRAMES[calcTF].label.toUpperCase();
+    } else if (v.epBlocked) {
+      th.style.background = '#7c2d12';
+      document.getElementById('tradeHeaderSub').textContent = '🛡 WAIT FOR EP BREAK — ' + C_TIMEFRAMES[calcTF].label.toUpperCase();
+    } else if (mode === 'RANGE') {
+      th.style.background = '#854d0e';
+      document.getElementById('tradeHeaderSub').textContent = '📊 RANGE MODE · RSI SIGNAL · ' + C_TIMEFRAMES[calcTF].label.toUpperCase();
+    } else if (mode === 'TREND' && v.epMissing) {
       th.style.background = '#1e40af';
-      document.getElementById('tradeHeaderSub').textContent = '⚠ EP NOT SET — ' + C_TIMEFRAMES[calcTF].label.toUpperCase() + ' CHART';
+      document.getElementById('tradeHeaderSub').textContent = '⚠ SET EXTREME POINT — ' + C_TIMEFRAMES[calcTF].label.toUpperCase();
     } else {
       th.style.background = dirColor;
-      document.getElementById('tradeHeaderSub').textContent = '✓ EP CONFIRMED — ' + C_TIMEFRAMES[calcTF].label.toUpperCase() + ' CHART';
+      document.getElementById('tradeHeaderSub').textContent = '✓ EP CONFIRMED · TREND MODE · ' + C_TIMEFRAMES[calcTF].label.toUpperCase();
     }
     document.getElementById('tradeHeaderMain').textContent = dir + ' ' + pair;
     document.getElementById('tradeHeaderEntry').textContent = 'Entry @ ' + fmt(entry) + (ep ? '  |  EP: ' + ep : '');
 
-    // ── LEVELS ──
-    document.getElementById('levelsSec').textContent = 'Trade Levels — ' + calcTF;
+    // ── TRADE LEVELS — mode-aware display ──
+    document.getElementById('levelsSec').textContent = mode === 'RANGE'
+      ? 'Trade Levels — ' + calcTF + ' · RANGE (Quick Exit)'
+      : 'Trade Levels — ' + calcTF + ' · TREND (Trail SAR)';
+
+    // SL — always SAR exactly
     document.getElementById('slBox').innerHTML = `
-      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'Rajdhani',sans-serif;">Stop Loss</div>
-      <div style="font-size:15px;font-weight:900;margin-bottom:5px;word-break:break-all;font-family:'JetBrains Mono',monospace;">${slPrice}</div>
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">Stop Loss = SAR</div>
+      <div style="font-size:15px;font-weight:900;margin-bottom:4px;word-break:break-all;font-family:'JetBrains Mono',monospace;">${fmt(slPrice)}</div>
       <div style="font-size:11px;font-weight:700;opacity:0.8;font-family:'JetBrains Mono',monospace;">${slPips.toFixed(1)} pips</div>
       <div style="font-size:13px;font-weight:800;margin-top:2px;font-family:'JetBrains Mono',monospace;">-$${slLoss.toFixed(2)}</div>`;
+
+    // TP1 — always 2×ATR
     document.getElementById('tp1Box').innerHTML = `
-      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'Rajdhani',sans-serif;">TP1 · ${tf.tp1}×ATR</div>
-      <div style="font-size:15px;font-weight:900;margin-bottom:5px;word-break:break-all;font-family:'JetBrains Mono',monospace;">${tp1Price}</div>
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">TP1 · 2×ATR</div>
+      <div style="font-size:15px;font-weight:900;margin-bottom:4px;word-break:break-all;font-family:'JetBrains Mono',monospace;">${tp1Price}</div>
       <div style="font-size:11px;font-weight:700;opacity:0.8;font-family:'JetBrains Mono',monospace;">${tp1Pips.toFixed(1)} pips</div>
       <div style="font-size:13px;font-weight:800;margin-top:2px;font-family:'JetBrains Mono',monospace;">+$${tp1Prof.toFixed(2)}</div>`;
-    document.getElementById('tp2Box').innerHTML = `
-      <div style="font-size:10px;font-weight:800;color:#2563eb;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'Rajdhani',sans-serif;">TP2 · ${tf.tp2}×ATR — Hold if ADX Still Rising</div>
-      <div style="font-size:20px;font-weight:900;color:#1d4ed8;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">${tp2Price}</div>
-      <div style="font-size:12px;font-weight:700;color:#2563eb;font-family:'JetBrains Mono',monospace;">${tp2Pips.toFixed(1)} pips · +$${tp2Prof.toFixed(2)} · RR ${rr2}:1</div>`;
 
+    // TP2 / Trail — different message per mode
+    if (mode === 'RANGE') {
+      // Range: quick exit at 3×ATR, do not trail
+      document.getElementById('tp2Box').innerHTML = `
+        <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">TP2 · 3×ATR — RANGE EXIT (Take profit. Do not trail.)</div>
+        <div style="font-size:20px;font-weight:900;color:#92400e;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">${tp2Price}</div>
+        <div style="font-size:12px;font-weight:700;color:#92400e;font-family:'JetBrains Mono',monospace;">${tp2Pips.toFixed(1)} pips · +$${tp2Prof.toFixed(2)} · RR ${rr2}:1</div>`;
+    } else {
+      // Trend: trail SAR — no fixed TP3
+      const isHighTF = ['D1','W1','MN'].includes(calcTF);
+      document.getElementById('tp2Box').innerHTML = `
+        <div style="font-size:10px;font-weight:800;color:#2563eb;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">TP2 · 3×ATR — Then TRAIL SAR${isHighTF ? ' (D1/W1 — weeks/months possible)' : ''}</div>
+        <div style="font-size:20px;font-weight:900;color:#1d4ed8;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">${tp2Price}</div>
+        <div style="font-size:12px;font-weight:700;color:#2563eb;font-family:'JetBrains Mono',monospace;">${tp2Pips.toFixed(1)} pips · +$${tp2Prof.toFixed(2)} · RR ${rr2}:1</div>
+        <div style="margin-top:10px;padding:10px 12px;background:#0f172a;border-radius:10px;border:1.5px solid #3b82f6;">
+          <div style="font-size:11px;font-weight:800;color:#60a5fa;letter-spacing:1px;margin-bottom:4px;font-family:'Rajdhani',sans-serif;">🔁 TRAILING STOP — SAR METHOD</div>
+          <div style="font-size:11px;font-weight:600;color:#94a3b8;font-family:'JetBrains Mono',monospace;line-height:1.7;">
+            At TP1: Close partial. Move SL to breakeven.<br>
+            At TP2: Close partial. Let remainder run.<br>
+            TRAIL: Follow SAR as it moves with price.<br>
+            EXIT: Only when SAR flips direction.<br>
+            ${isHighTF ? 'This is a position trade — 1:5, 1:10, 1:20 possible.' : 'ADX still rising = trend intact = hold.'}
+          </div>
+        </div>`;
+    }
+
+    // Notes
     let levNotes = '';
-    if (slPips > tf.maxSL) levNotes += `<div style="padding:10px 14px;background:#fffbeb;border:1.5px solid #fde047;border-radius:10px;margin-top:10px;font-size:12px;font-weight:700;color:#92400e;font-family:'JetBrains Mono',monospace;">⚠️ SL of ${slPips.toFixed(1)} pips is wider than typical for ${calcTF}.</div>`;
     if (cfg.jpy) levNotes += `<div style="padding:10px 14px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;margin-top:10px;font-size:12px;font-weight:700;color:#1d4ed8;font-family:'JetBrains Mono',monospace;">⚡ JPY pair — pip at 0.01 (2nd decimal).</div>`;
     document.getElementById('levelsNotes').innerHTML = levNotes;
 
@@ -1832,17 +1974,20 @@ Return ONLY the JSON object with no other text.`,
     const rrColor    = +rr1 >= 2 ? '#16a34a' : '#d97706';
     const freeColor  = marginRisk ? '#dc2626' : '#16a34a';
     const stats = [
-      {lbl:'Risk %', val: riskPct+'%', color: riskColor},
-      {lbl:'RR (TP1)', val: rr1+' : 1', color: rrColor},
-      {lbl:'Pip Value', val: '$'+pv.toFixed(3), color:'#111'},
-      {lbl:'SL Basis', val: sarBasis?'SAR':'ATR', color:'#111'},
-      {lbl:'Margin Used', val: '$'+margin.toFixed(2), color:'#111'},
+      {lbl:'Market Mode', val: mode==='RANGE'?'RANGE':mode==='NOmans'?'NO MANS':'TREND',
+       color: mode==='RANGE'?'#92400e':mode==='NOmans'?'#6b7280':'#16a34a'},
+      {lbl:'Risk %',      val: riskPct+'%',        color: riskColor},
+      {lbl:'RR (TP1)',    val: rr1+' : 1',          color: rrColor},
+      {lbl:'Pip Value',   val: '$'+pv.toFixed(3),   color:'#111'},
+      {lbl:'SL = SAR',    val: fmt(sar),             color:'#dc2626'},
+      {lbl:'Margin Used', val: '$'+margin.toFixed(2),color:'#111'},
       {lbl:'Free Margin', val: '$'+free.toFixed(2), color: freeColor},
     ];
+    document.getElementById('statsGrid').style.gridTemplateColumns = '1fr 1fr';
     document.getElementById('statsGrid').innerHTML = stats.map(s =>
       `<div class="calc-stat">
         <div style="font-size:10px;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">${s.lbl}</div>
-        <div style="font-size:16px;font-weight:900;color:${s.color};font-family:'JetBrains Mono',monospace;">${s.val}</div>
+        <div style="font-size:14px;font-weight:900;color:${s.color};font-family:'JetBrains Mono',monospace;">${s.val}</div>
       </div>`
     ).join('');
     document.getElementById('statsNotes').innerHTML = marginRisk
