@@ -1225,11 +1225,14 @@ Return exactly these keys (use null if a value cannot be found):
 
 Follow these exact rules for each field:
 
-PAIR: Top-left corner instrument symbol. Read it exactly as shown — it may include suffixes like ".P" for perpetual contracts e.g. "BEATUSDT.P" → return "BEATUSDT", "BTCUSD" → return "BTCUSD", "XAUUSD" → return "XAUUSD". Strip any exchange suffix but keep the full trading pair name. If the image is blurry, also check the chart title text in the second row which shows the full name e.g. "BEATUSDT Perpetual Contract".
+IMPORTANT: This image may be a screenshot, a photo of a screen, or a compressed image. Even if quality is reduced, extract all values you can read. Use every available source in the chart — header text, indicator labels, right-side boxes, colored labels — to find each value. Do your best even on lower quality images.
+
+PAIR: Top-left corner instrument symbol. Read it exactly as shown — it may include suffixes like ".P" for perpetual contracts e.g. "BEATUSDT.P" → return "BEATUSDT", "BTCUSD" → return "BTCUSD", "XAUUSD" → return "XAUUSD". Strip any exchange suffix but keep the full trading pair name. Also check the chart title text in the second row which shows the full name e.g. "Gold Spot / U.S. Dollar" → return "XAUUSD", "BEATUSDT Perpetual Contract" → return "BEATUSDT".
 
 TIMEFRAME: In the top toolbar, find the currently SELECTED/HIGHLIGHTED timeframe button. It appears bolder, brighter or highlighted compared to others. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return exactly as shown e.g. "5m", "1h", "4h", "D". Do NOT guess — only return the visually active one.
 
-ENTRY: Find the OHLC bar at the very top of the chart. It shows O H L C values. The ENTRY is the C (close) value — it appears after the letter "C" followed by a number e.g. "C5,238.070" or "C0.20610". Do NOT use the price numbers on the right-side vertical price scale. Do NOT use the buy/sell box prices on the left. Use ONLY the C: close price from the top OHLC line.
+ENTRY: Find the OHLC bar at the very top of the chart. It shows O H L C values. The ENTRY is the C (close) value — it appears after the letter "C" followed by a number e.g. "C5,238.070" → return "5238.070", "C0.20610" → return "0.20610". Do NOT use the price numbers on the right-side vertical price scale. Do NOT use the buy/sell box prices on the left. Use ONLY the C: close price from the top OHLC line.
+CRITICAL FOR ALL NUMERIC VALUES: Return numbers WITHOUT commas. "4,065.80" → "4065.80", "66,927.9" → "66927.9", "1,336.4" → "1336.4". Never include commas in any returned number.
 EP: The Extreme Point is the HIGH price of the most recent candle where +DI crossed above -DI (for a bullish setup), or the LOW price of the most recent candle where -DI crossed above +DI (for a bearish setup). Look at where the ADX Wilder Dashboard DI lines cross on the chart — find that crossover candle and return its high (bullish) or low (bearish). Return null if you cannot determine this with confidence.
 
 SAR: Find the label "Wilder Structure (Clean Simple)" in the top-left indicator area. The SAR value is the LAST number shown on that line e.g. "Wilder Structure (Clean Simple) 14 20 0.02 0.2  62839.2" → return "62839.2". Also check the right side for a pink/red box labeled "Wilder Structure (Clean Simple):SAR".
@@ -1269,8 +1272,13 @@ Return ONLY the JSON object with no other text.`,
 
       let filled = 0;
       Object.entries(FIELD_MAP).forEach(([key, id]) => {
-        const val = data[key];
+        let val = data[key];
         if (val && val !== 'null' && val !== null) {
+          // Strip commas from numeric values — AI often returns "4,065.80" instead of "4065.80"
+          // Keep original for pair and timeframe (non-numeric fields)
+          if (!['pair','timeframe','ep'].includes(key)) {
+            val = String(val).replace(/,/g, '');
+          }
           const el = document.getElementById(id);
           el.value = val;
           el.classList.add('has-value', 'popped');
@@ -1950,14 +1958,14 @@ Return ONLY the JSON object with no other text.`,
     document.getElementById('slBox').innerHTML = `
       <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">Stop Loss = SAR</div>
       <div style="font-size:15px;font-weight:900;margin-bottom:4px;word-break:break-all;font-family:'JetBrains Mono',monospace;">${fmt(slPrice)}</div>
-      <div style="font-size:11px;font-weight:700;opacity:0.8;font-family:'JetBrains Mono',monospace;">${slPips.toFixed(1)} pips</div>
+      <div style="font-size:11px;font-weight:700;opacity:0.8;font-family:'JetBrains Mono',monospace;">${slPips.toFixed(1)} units</div>
       <div style="font-size:13px;font-weight:800;margin-top:2px;font-family:'JetBrains Mono',monospace;">-$${slLoss.toFixed(2)}</div>`;
 
     // TP1 — always 2×ATR
     document.getElementById('tp1Box').innerHTML = `
       <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">TP1 · 2×ATR</div>
       <div style="font-size:15px;font-weight:900;margin-bottom:4px;word-break:break-all;font-family:'JetBrains Mono',monospace;">${tp1Price}</div>
-      <div style="font-size:11px;font-weight:700;opacity:0.8;font-family:'JetBrains Mono',monospace;">${tp1Pips.toFixed(1)} pips</div>
+      <div style="font-size:11px;font-weight:700;opacity:0.8;font-family:'JetBrains Mono',monospace;">${tp1Pips.toFixed(1)} units</div>
       <div style="font-size:13px;font-weight:800;margin-top:2px;font-family:'JetBrains Mono',monospace;">+$${tp1Prof.toFixed(2)}</div>`;
 
     // TP2 / Trail — different message per mode
@@ -2014,8 +2022,34 @@ Return ONLY the JSON object with no other text.`,
         <div style="font-size:14px;font-weight:900;color:${s.color};font-family:'JetBrains Mono',monospace;">${s.val}</div>
       </div>`
     ).join('');
-    document.getElementById('statsNotes').innerHTML = marginRisk
-      ? `<div style="padding:10px 14px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;font-size:12px;font-weight:700;color:#991b1b;font-family:'JetBrains Mono',monospace;">⚠️ Margin call risk — Free margin ($${free.toFixed(2)}) is less than potential loss ($${slLoss.toFixed(2)}).</div>` : '';
+    // ── REAL MARGIN CALL CHECK ──
+    // Leverage lets you open the trade but your free margin must survive
+    // the full drawdown from entry to SAR. If it cannot — broker closes early.
+    const requiredFreeMargin = slLoss;           // need this much free margin to hold to SAR
+    const actualFreeMargin   = balance - margin;  // what is actually available after opening
+    const realMarginRisk     = actualFreeMargin < requiredFreeMargin;
+    const unitsBeforeMC      = actualFreeMargin / (pv / pm); // price units before margin call
+
+    let statsNote = '';
+    if (realMarginRisk) {
+      statsNote += `<div style="padding:12px 14px;background:#7f1d1d;border:2px solid #ef4444;border-radius:12px;margin-top:8px;">
+        <div style="font-size:12px;font-weight:900;color:#fecaca;font-family:'Rajdhani',sans-serif;margin-bottom:6px;">⛔ MARGIN CALL BEFORE SAR IS REACHED</div>
+        <div style="font-size:11px;font-weight:700;color:#fca5a5;font-family:'JetBrains Mono',monospace;line-height:1.8;">
+          Your leverage opens the trade — but your free margin ($${actualFreeMargin.toFixed(2)}) cannot absorb the full SAR drawdown ($${requiredFreeMargin.toFixed(2)}).<br>
+          Broker will close you at approximately ${unitsBeforeMC.toFixed(1)} units of adverse move.<br>
+          Your SAR stop is ${slPips.toFixed(1)} units away — you will never reach it.<br>
+          Required balance to hold to SAR: $${(margin + requiredFreeMargin).toFixed(2)}<br>
+          Solution: Reduce lot size or increase account balance.
+        </div>
+      </div>`;
+    }
+    if (+riskPct > 10 && !realMarginRisk) {
+      statsNote += `<div style="padding:10px 14px;background:#fff7ed;border:1.5px solid #fb923c;border-radius:10px;margin-top:8px;font-size:12px;font-weight:700;color:#9a3412;font-family:'JetBrains Mono',monospace;">⚠️ Risk ${riskPct}% is high. Proper Wilder money management = 1-2% risk per trade. Reduce lot size.</div>`;
+    }
+    if (slPips > atrPips * 2 && mode === 'TREND') {
+      statsNote += `<div style="padding:10px 14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;margin-top:8px;font-size:12px;font-weight:700;color:#15803d;font-family:'JetBrains Mono',monospace;">ℹ️ SAR is wider than 2×ATR — RR at TP1 is ${rr1}:1. This is correct. The real return is in the SAR trail, not TP1. Hold until SAR flips.</div>`;
+    }
+    document.getElementById('statsNotes').innerHTML = statsNote;
   }
 
   // ── UPDATE sendToCalculator to use internal tab instead of opening URL ──
