@@ -1431,16 +1431,16 @@ Return ONLY the JSON object with no other text.`,
   };
 
   const C_TIMEFRAMES = {
-    '1M':{label:'1 Minute', ctx:'Scalp. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Quick exits.'},
-    '5M':{label:'5 Minute', ctx:'Scalp. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Quick exits.'},
-    '15M':{label:'15 Minute',ctx:'Intraday. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Monitor closely.'},
-    '30M':{label:'30 Minute',ctx:'Intraday. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Trail SAR on trend.'},
-    '1H':{label:'1 Hour',   ctx:'Intraday. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Trail SAR on trend.'},
-    '2H':{label:'2 Hour',   ctx:'Swing. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Trail SAR on trend.'},
-    '4H':{label:'4 Hour',   ctx:'Swing. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Trail SAR on trend.'},
-    'D1':{label:'Daily',    ctx:'Position. Wilder primary timeframe. SL = SAR. Trail SAR — days/weeks possible.'},
-    'W1':{label:'Weekly',   ctx:'Position. SL = SAR. Trail SAR — weeks/months possible.'},
-    'MN':{label:'Monthly',  ctx:'Long-term position. SL = SAR. Trail SAR — months possible.'},
+    '1M':{label:'1 Minute',  ctx:'Scalp — Extremely fast moves. Very high noise on all instruments. SAR flips rapidly. Requires instant decisions and strict discipline. Not recommended for beginners.'},
+    '5M':{label:'5 Minute',  ctx:'Scalp — Fast signals on all instruments. SAR stops are tight relative to ATR. Good for liquid forex, gold and indices. Exit at TP1 unless trend is very strong.'},
+    '15M':{label:'15 Minute',ctx:'Scalp/Intraday — More reliable than 1M/5M. Better DI crossover quality. Good balance of speed and accuracy. Wilder rules apply cleanly at this level.'},
+    '30M':{label:'30 Minute',ctx:'Intraday — Solid trend signals. SAR provides clear direction. Fewer false crossovers than lower timeframes. Suitable for all instruments including crypto and commodities.'},
+    '1H':{label:'1 Hour',    ctx:'Intraday — Strong trend confirmation. Less noise. ADX trends are more sustained. Good for most instruments and trading styles. Trail SAR when ADX is rising.'},
+    '2H':{label:'2 Hour',    ctx:'Intraday/Swing — High quality Wilder signals. SAR moves are meaningful. Suits patient traders. DI crossovers more reliable. Holds can last 1-3 days.'},
+    '4H':{label:'4 Hour',    ctx:'Swing — Very reliable signals across all instruments. Less screen time needed. SAR trails can last several days. ADX trends are well-defined at this level.'},
+    'D1':{label:'Daily',     ctx:'Position — Wilder primary and original focus. Highest probability setups. ADX trends sustained for weeks. SAR trail can run for weeks or months. All instruments valid.'},
+    'W1':{label:'Weekly',    ctx:'Position — Major macro trends only. SAR stops are wide — this is correct and expected. Strong ADX trends run for months. Holds can last weeks to months.'},
+    'MN':{label:'Monthly',   ctx:'Long-term — Strategic position trading. SAR moves very slowly with price. ADX must be clearly above 25. Holds measured in months. Institutional level discipline required.'},
   };
   const TF_KEYS = ['1M','5M','15M','30M','1H','2H','4H','D1','W1','MN'];
 
