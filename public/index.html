@@ -1423,16 +1423,16 @@ Return ONLY the JSON object with no other text.`,
   };
 
   const C_TIMEFRAMES = {
-    '1M':{label:'1 Minute',tp1:2,tp2:3,maxSL:8,ctx:'Scalp — Very tight. SL 3-8 pips typical.'},
-    '5M':{label:'5 Minute',tp1:2,tp2:3,maxSL:15,ctx:'Scalp — SL 5-15 pips typical.'},
-    '15M':{label:'15 Minute',tp1:2,tp2:3,maxSL:25,ctx:'Scalp/Intraday — SL 10-25 pips typical.'},
-    '30M':{label:'30 Minute',tp1:2,tp2:3,maxSL:40,ctx:'Intraday — SL 15-40 pips typical.'},
-    '1H':{label:'1 Hour',tp1:2,tp2:4,maxSL:60,ctx:'Intraday — SL 20-60 pips typical.'},
-    '2H':{label:'2 Hour',tp1:2,tp2:4,maxSL:80,ctx:'Intraday/Swing — SL 30-80 pips typical.'},
-    '4H':{label:'4 Hour',tp1:2,tp2:4,maxSL:100,ctx:'Swing — SL 40-100 pips typical.'},
-    'D1':{label:'Daily',tp1:2,tp2:5,maxSL:200,ctx:"Position — SL 80-200 pips. Wilder original focus."},
-    'W1':{label:'Weekly',tp1:2,tp2:5,maxSL:400,ctx:'Position — SL 150-400 pips typical.'},
-    'MN':{label:'Monthly',tp1:2,tp2:5,maxSL:800,ctx:'Long-term — SL 300+ pips typical.'},
+    '1M':{label:'1 Minute', ctx:'Scalp. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Quick exits.'},
+    '5M':{label:'5 Minute', ctx:'Scalp. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Quick exits.'},
+    '15M':{label:'15 Minute',ctx:'Intraday. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Monitor closely.'},
+    '30M':{label:'30 Minute',ctx:'Intraday. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Trail SAR on trend.'},
+    '1H':{label:'1 Hour',   ctx:'Intraday. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Trail SAR on trend.'},
+    '2H':{label:'2 Hour',   ctx:'Swing. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Trail SAR on trend.'},
+    '4H':{label:'4 Hour',   ctx:'Swing. SL = SAR. TP1 = 2xATR. TP2 = 3xATR. Trail SAR on trend.'},
+    'D1':{label:'Daily',    ctx:'Position. Wilder primary timeframe. SL = SAR. Trail SAR — days/weeks possible.'},
+    'W1':{label:'Weekly',   ctx:'Position. SL = SAR. Trail SAR — weeks/months possible.'},
+    'MN':{label:'Monthly',  ctx:'Long-term position. SL = SAR. Trail SAR — months possible.'},
   };
   const TF_KEYS = ['1M','5M','15M','30M','1H','2H','4H','D1','W1','MN'];
 
@@ -1945,27 +1945,26 @@ Return ONLY the JSON object with no other text.`,
         <div style="font-size:20px;font-weight:900;color:#92400e;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">${tp2Price}</div>
         <div style="font-size:12px;font-weight:700;color:#92400e;font-family:'JetBrains Mono',monospace;">${tp2Pips.toFixed(1)} pips · +$${tp2Prof.toFixed(2)} · RR ${rr2}:1</div>`;
     } else {
-      // Trend: trail SAR — no fixed TP3
-      const isHighTF = ['D1','W1','MN'].includes(calcTF);
+      // Trend: 3xATR partial exit, then trail SAR — same on ALL timeframes and instruments
       document.getElementById('tp2Box').innerHTML = `
-        <div style="font-size:10px;font-weight:800;color:#2563eb;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">TP2 · 3×ATR — Then TRAIL SAR${isHighTF ? ' (D1/W1 — weeks/months possible)' : ''}</div>
+        <div style="font-size:10px;font-weight:800;color:#2563eb;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Rajdhani',sans-serif;">TP2 · 3×ATR — Partial Exit. Then Trail SAR.</div>
         <div style="font-size:20px;font-weight:900;color:#1d4ed8;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">${tp2Price}</div>
-        <div style="font-size:12px;font-weight:700;color:#2563eb;font-family:'JetBrains Mono',monospace;">${tp2Pips.toFixed(1)} pips · +$${tp2Prof.toFixed(2)} · RR ${rr2}:1</div>
-        <div style="margin-top:10px;padding:10px 12px;background:#0f172a;border-radius:10px;border:1.5px solid #3b82f6;">
-          <div style="font-size:11px;font-weight:800;color:#60a5fa;letter-spacing:1px;margin-bottom:4px;font-family:'Rajdhani',sans-serif;">🔁 TRAILING STOP — SAR METHOD</div>
-          <div style="font-size:11px;font-weight:600;color:#94a3b8;font-family:'JetBrains Mono',monospace;line-height:1.7;">
-            At TP1: Close partial. Move SL to breakeven.<br>
-            At TP2: Close partial. Let remainder run.<br>
-            TRAIL: Follow SAR as it moves with price.<br>
-            EXIT: Only when SAR flips direction.<br>
-            ${isHighTF ? 'This is a position trade — 1:5, 1:10, 1:20 possible.' : 'ADX still rising = trend intact = hold.'}
+        <div style="font-size:12px;font-weight:700;color:#2563eb;font-family:'JetBrains Mono',monospace;">${tp2Pips.toFixed(1)} units · +$${tp2Prof.toFixed(2)} · RR ${rr2}:1</div>
+        <div style="margin-top:10px;padding:12px 14px;background:#0f172a;border-radius:10px;border:1.5px solid #3b82f6;">
+          <div style="font-size:11px;font-weight:800;color:#60a5fa;letter-spacing:1px;margin-bottom:8px;font-family:'Rajdhani',sans-serif;">🔁 TRAILING STOP — SAR METHOD (All Timeframes · All Instruments)</div>
+          <div style="font-size:12px;font-weight:700;color:#e2e8f0;font-family:'JetBrains Mono',monospace;line-height:1.9;">
+            Step 1 — At TP1 (2×ATR): Close partial position. Move SL to breakeven.<br>
+            Step 2 — At TP2 (3×ATR): Close partial position. Let remainder run free.<br>
+            Step 3 — TRAIL: Follow SAR value as it moves with price every candle.<br>
+            Step 4 — EXIT: Only when SAR flips direction. Not before.<br>
+            Rule — ADX still rising = trend intact = hold. Do not exit early.
           </div>
         </div>`;
     }
 
-    // Notes
+    // Notes — only show JPY note if applicable. No SL width warnings — SAR is always correct.
     let levNotes = '';
-    if (cfg.jpy) levNotes += `<div style="padding:10px 14px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;margin-top:10px;font-size:12px;font-weight:700;color:#1d4ed8;font-family:'JetBrains Mono',monospace;">⚡ JPY pair — pip at 0.01 (2nd decimal).</div>`;
+    if (cfg.jpy) levNotes += `<div style="padding:10px 14px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;margin-top:10px;font-size:12px;font-weight:700;color:#1d4ed8;font-family:'JetBrains Mono',monospace;">⚡ JPY pair — pip at 0.01 (2nd decimal). All calculations are correct for this instrument.</div>`;
     document.getElementById('levelsNotes').innerHTML = levNotes;
 
     // ── STATS ──
