@@ -1334,27 +1334,32 @@ Return exactly these keys (use null if a value cannot be found):
 
 Follow these exact rules for each field:
 
-IMPORTANT: This image may be a screenshot, a photo of a screen, or a compressed image. Even if quality is reduced, extract all values you can read. Use every available source in the chart — header text, indicator labels, right-side boxes, colored labels — to find each value. Do your best even on lower quality images.
+CRITICAL WARNING — BAR SELECTION BUG: TradingView shows historical values in the header when a past bar is selected or bar replay is active. The header indicator line (top-left) may show OLD values from a selected candle — NOT the current bar. The right-side colored price boxes ALWAYS show current live values. ALWAYS use right-side boxes as PRIMARY source. Only use the header line as a last resort when no right-side box exists.
 
-PAIR: Top-left corner instrument symbol. Read it exactly as shown — it may include suffixes like ".P" for perpetual contracts e.g. "BEATUSDT.P" → return "BEATUSDT", "BTCUSD" → return "BTCUSD", "XAUUSD" → return "XAUUSD". Strip any exchange suffix but keep the full trading pair name. Also check the chart title text in the second row which shows the full name e.g. "Gold Spot / U.S. Dollar" → return "XAUUSD", "BEATUSDT Perpetual Contract" → return "BEATUSDT".
+CRITICAL FOR ALL NUMERIC VALUES: Return numbers WITHOUT commas. "4,065.80" → "4065.80", "92093.54" → "92093.54", "71300.44" → "71300.44". Never include commas in any returned number.
 
-TIMEFRAME: In the top toolbar, find the currently SELECTED/HIGHLIGHTED timeframe button. It appears bolder, brighter or highlighted compared to others. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return exactly as shown e.g. "5m", "1h", "4h", "D". Do NOT guess — only return the visually active one.
+This image may be a screenshot, a compressed image, or a photo of a screen. Extract all values you can read even on lower quality images.
 
-ENTRY: Find the OHLC bar at the very top of the chart. It shows O H L C values. The ENTRY is the C (close) value — it appears after the letter "C" followed by a number e.g. "C5,238.070" → return "5238.070", "C0.20610" → return "0.20610". Do NOT use the price numbers on the right-side vertical price scale. Do NOT use the buy/sell box prices on the left. Use ONLY the C: close price from the top OHLC line.
-CRITICAL FOR ALL NUMERIC VALUES: Return numbers WITHOUT commas. "4,065.80" → "4065.80", "66,927.9" → "66927.9", "1,336.4" → "1336.4". Never include commas in any returned number.
-EP: The Extreme Point is the HIGH price of the most recent candle where +DI crossed above -DI (for a bullish setup), or the LOW price of the most recent candle where -DI crossed above +DI (for a bearish setup). Look at where the ADX Wilder Dashboard DI lines cross on the chart — find that crossover candle and return its high (bullish) or low (bearish). Return null if you cannot determine this with confidence.
+PAIR: Top-left corner instrument symbol. Strip exchange suffixes but keep full pair name. "Gold Spot / U.S. Dollar" → "XAUUSD". "Bitcoin / U.S. Dollar" → "BTCUSD". "BEATUSDT Perpetual Contract" → "BEATUSDT". ".P" suffix → strip it.
 
-SAR: Find the label "Wilder Structure (Clean Simple)" in the top-left indicator area. The SAR value is the LAST number shown on that line e.g. "Wilder Structure (Clean Simple) 14 20 0.02 0.2  62839.2" → return "62839.2". Also check the right side for a pink/red box labeled "Wilder Structure (Clean Simple):SAR".
+TIMEFRAME: Top toolbar — find the HIGHLIGHTED/BOLD timeframe button. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return only the active one e.g. "D", "4h", "1h".
 
-ATR: Find the label "ATR-Current" in the indicator panel. Look for the ATR(14) value shown. On the right side there may be a box — use the "ATR (14)" row value.
+ENTRY: OHLC line at top of chart — use ONLY the C (close) value. e.g. "C 92,093.54" → return "92093.54". Do NOT use right-side price scale numbers or buy/sell box prices.
 
-ADX: Find "ADX Wilder Dashboard" indicator panel. The header line shows 3 numbers in this exact order: ADX value FIRST, then +DI value SECOND, then -DI value THIRD e.g. "ADX Wilder Dashboard (Pure v6) 14 14 20  10.54757  17.79356  21.93271" means ADX=10.54757, +DI=17.79356, -DI=21.93271. Also check the right side of the chart for colored label boxes:
-- GREEN box labeled "+DI" = plus_di value
-- RED box labeled "-DI" = minus_di value  
-- GREEN/TEAL box labeled "ADX" = adx value
-IMPORTANT: The header order is always ADX, +DI, -DI. Use this order if the right-side boxes are unclear. Never swap +DI and -DI.
+SAR: RIGHT-SIDE FIRST — Look for a pink or red labeled box on the right price axis labeled "Wilder Structure (Clean Simple):SAR" — use that value. e.g. pink box showing "71300.44" → return "71300.44". Only if no right-side box exists, use the LAST number on the "Wilder Structure (Clean Simple)" header line as fallback.
 
-RSI: Find "RSI-Wilder" indicator panel. On the right side look for the "RSI" labeled box or "WILDER RSI" value. Return the RSI number, NOT the 50.0 midline value.
+ATR: RIGHT-SIDE FIRST — Look for the right-side box labeled "ATR" showing the ATR(14) value. e.g. blue box showing "3273.02" → return "3273.02". Fallback: "ATR-Current" header line last number.
+
+ADX, +DI, -DI: RIGHT-SIDE BOXES ARE THE ONLY CORRECT SOURCE — On the right price axis of the ADX panel look for three colored boxes:
+- GREEN/TEAL box labeled "ADX" → this is adx
+- RED box labeled "-DI" → this is minus_di  
+- CYAN/LIGHT-BLUE box labeled "+DI" → this is plus_di
+Use ONLY these right-side box values. e.g. ADX box = "50.21", -DI box = "29.13", +DI box = "13.83".
+NEVER use the header line values for ADX/DI — those show historical values when a bar is selected and will be wrong.
+
+RSI: RIGHT-SIDE FIRST — look for the right-side box labeled "RSI" or "WILDER RSI". Return that value. Do NOT return the 50.0 midline value.
+
+EP: The HIGH of the candle where -DI crossed above +DI (SELL setup) or LOW of candle where +DI crossed above -DI (BUY setup). Return null if not confident.
 
 Return ONLY the JSON object with no other text.`,
           messages: [{
