@@ -1919,6 +1919,29 @@ Return ONLY the JSON object with no other text.`,
     document.getElementById('tradeHeaderEntry').textContent = 'Entry @ ' + fmt(entry) + (ep ? '  |  EP: ' + ep : '');
 
     // ── TRADE LEVELS — mode-aware display ──
+    // HARD GUARD: If SAR is on the wrong side of entry, levels are meaningless.
+    // BUY needs SAR below entry. SELL needs SAR above entry.
+    const sarWrongSide = (dir === 'BUY' && sar >= entry) || (dir === 'SELL' && sar <= entry);
+    if (sarWrongSide) {
+      document.getElementById('levelsSec').textContent = 'Trade Levels — INVALID';
+      document.getElementById('slBox').innerHTML = '';
+      document.getElementById('tp1Box').innerHTML = '';
+      document.getElementById('tp2Box').innerHTML = '';
+      document.getElementById('levelsNotes').innerHTML = `
+        <div style="padding:14px 16px;background:#7f1d1d;border:2px solid #ef4444;border-radius:12px;margin-top:4px;">
+          <div style="font-size:13px;font-weight:900;color:#fecaca;font-family:'Rajdhani',sans-serif;margin-bottom:6px;">
+            ⛔ SAR IS ON THE WRONG SIDE OF ENTRY
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#fca5a5;font-family:'JetBrains Mono',monospace;line-height:1.7;">
+            BUY trade requires SAR below entry price.<br>
+            SELL trade requires SAR above entry price.<br>
+            Check the SAR value you entered — it may be wrong.<br>
+            Current entry: ${fmt(entry)} · SAR entered: ${fmt(sar)}
+          </div>
+        </div>`;
+      // Skip all further level rendering
+    } else {
+
     document.getElementById('levelsSec').textContent = mode === 'RANGE'
       ? 'Trade Levels — ' + calcTF + ' · RANGE (Quick Exit)'
       : 'Trade Levels — ' + calcTF + ' · TREND (Trail SAR)';
@@ -1966,6 +1989,8 @@ Return ONLY the JSON object with no other text.`,
     let levNotes = '';
     if (cfg.jpy) levNotes += `<div style="padding:10px 14px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:10px;margin-top:10px;font-size:12px;font-weight:700;color:#1d4ed8;font-family:'JetBrains Mono',monospace;">⚡ JPY pair — pip at 0.01 (2nd decimal). All calculations are correct for this instrument.</div>`;
     document.getElementById('levelsNotes').innerHTML = levNotes;
+
+    } // end sarWrongSide else
 
     // ── STATS ──
     const marginRisk = free < slLoss;
