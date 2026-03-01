@@ -864,6 +864,37 @@ canvas { display: none; }
         </div>
       </div>
 
+      <!-- HIGHER TIMEFRAME ALIGNMENT CARD -->
+      <div class="calc-card" style="background:#0f172a; border:2px solid #6366f1;">
+        <div class="calc-sec" id="htfSec" style="color:#a5b4fc;">Higher Timeframe Alignment — Check W1 Before D1</div>
+        <div style="font-size:11px; font-weight:600; color:#64748b; font-family:'JetBrains Mono',monospace; line-height:1.7; margin-bottom:14px; padding:10px 12px; background:#1e293b; border-radius:10px; border-left:3px solid #6366f1;">
+          Open the <span id="htfLabel" style="color:#a5b4fc; font-weight:900;">W1</span> chart for the same instrument.<br>
+          Enter only 3 values: ADX, +DI and -DI from that chart.<br>
+          <span style="color:#f59e0b; font-weight:800;">If W1 is trending AGAINST your trade — do not enter. It will fake out.</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+          <div>
+            <label class="calc-lbl" style="color:#818cf8;">HTF ADX</label>
+            <input id="c_htf_adx" class="calc-inp" type="number" step="any" placeholder="35.0"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#1e293b; border-color:#4f46e5; color:#e0e7ff; font-weight:800;">
+          </div>
+          <div>
+            <label class="calc-lbl" style="color:#34d399;">HTF +DI</label>
+            <input id="c_htf_pdi" class="calc-inp" type="number" step="any" placeholder="28.5"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#1e293b; border-color:#059669; color:#d1fae5; font-weight:800;">
+          </div>
+          <div>
+            <label class="calc-lbl" style="color:#f87171;">HTF -DI</label>
+            <input id="c_htf_ndi" class="calc-inp" type="number" step="any" placeholder="14.2"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#1e293b; border-color:#dc2626; color:#fee2e2; font-weight:800;">
+          </div>
+        </div>
+        <div id="htfResult" style="display:none; padding:12px 14px; border-radius:10px; margin-top:4px;"></div>
+      </div>
+
       <!-- INDICATORS CARD -->
       <div class="calc-card">
         <div id="calcIndSec" class="calc-sec">Wilder Indicators — 5M Chart</div>
@@ -1444,6 +1475,21 @@ Return ONLY the JSON object with no other text.`,
   };
   const TF_KEYS = ['1M','5M','15M','30M','1H','2H','4H','D1','W1','MN'];
 
+  // Higher Timeframe alignment map — for each active TF, which HTF must be checked
+  // Rule: before trusting D1 check W1. Before trusting 4H check D1. Universal for all instruments.
+  const HTF_MAP = {
+    '1M' :'5M',
+    '5M' :'15M',
+    '15M':'1H',
+    '30M':'1H',
+    '1H' :'4H',
+    '2H' :'4H',
+    '4H' :'D1',
+    'D1' :'W1',
+    'W1' :'MN',
+    'MN' :null,   // No higher TF — skip check
+  };
+
   let calcTF = '5M';
 
   // ── INIT CALCULATOR ──
@@ -1487,11 +1533,30 @@ Return ONLY the JSON object with no other text.`,
   }
 
   function updateTFContext() {
-    const tf = C_TIMEFRAMES[calcTF];
+    const tf    = C_TIMEFRAMES[calcTF];
+    const htfTF = HTF_MAP[calcTF];
+    const htfLabel = htfTF ? (C_TIMEFRAMES[htfTF].label + ' (' + htfTF + ')') : 'None';
+
     document.getElementById('tfBadge').textContent = calcTF;
     document.getElementById('tfLabel').textContent = tf.label + ' Chart';
     document.getElementById('tfCtx').textContent = tf.ctx;
     document.getElementById('calcIndSec').textContent = 'Wilder Indicators — ' + calcTF + ' Chart';
+
+    // Update HTF card header and instruction label
+    document.getElementById('htfLabel').textContent = htfTF || 'N/A';
+    if (htfTF) {
+      document.getElementById('htfSec').textContent =
+        'Higher Timeframe Alignment — Check ' + htfTF + ' Before ' + calcTF;
+    } else {
+      document.getElementById('htfSec').textContent =
+        'Higher Timeframe Alignment — Not Required (Monthly chart)';
+    }
+    // Update HTF input placeholders to reflect the required TF
+    const htfNote = htfTF ? ('From your ' + htfTF + ' chart') : 'N/A';
+    ['c_htf_adx','c_htf_pdi','c_htf_ndi'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.placeholder = htfTF ? el.placeholder : 'N/A';
+    });
   }
 
   // ── CUSTOM PAIR TOGGLE ──
@@ -1636,6 +1701,131 @@ Return ONLY the JSON object with no other text.`,
     calcUpdate();
     showPanel('calc');
     toast('🚀 Sent to Calculator!');
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ── HTF ALIGNMENT CHECK — Runs BEFORE all current TF checks
+  // ══════════════════════════════════════════════════════
+  // Rule: Weekly must confirm Daily. Daily must confirm 4H.
+  // If HTF is trending AGAINST your direction — hard block.
+  // No other rules matter if the bigger trend is against you.
+  // Works identically for all instruments and all timeframes.
+  // ══════════════════════════════════════════════════════
+
+  function runHTFCheck(htfAdx, htfPdi, htfMdi, dir) {
+    const htfTF  = HTF_MAP[calcTF];
+
+    // Monthly chart — no higher TF exists, skip
+    if (!htfTF) {
+      return { skip:true, check:null, htfBlocked:false };
+    }
+
+    // Fields not filled — warn but do not block
+    if (!htfAdx || !htfPdi || !htfMdi) {
+      return {
+        skip: false,
+        htfBlocked: false,
+        check: {
+          ok: null,
+          htf: true,
+          text: '📡 ' + htfTF + ' NOT CHECKED — Open your ' + htfTF + ' chart and fill in ADX, +DI, -DI above. ' +
+                'Trading without checking the higher timeframe risks entering against the macro trend.'
+        }
+      };
+    }
+
+    const htfMode = getMarketMode(htfAdx);
+
+    // HTF ranging — no macro trend in either direction
+    if (htfMode === 'RANGE') {
+      return {
+        skip: false,
+        htfBlocked: false,
+        check: {
+          ok: null,
+          htf: true,
+          text: '📡 ' + htfTF + ' ADX ' + htfAdx.toFixed(1) + ' — Higher timeframe is RANGING. ' +
+                'No macro trend supporting this trade. Reduce position size. Quick exit only. Do not trail.'
+        }
+      };
+    }
+
+    // HTF No Mans Land — transitioning
+    if (htfMode === 'NOmans') {
+      return {
+        skip: false,
+        htfBlocked: false,
+        check: {
+          ok: null,
+          htf: true,
+          text: '📡 ' + htfTF + ' ADX ' + htfAdx.toFixed(1) + ' — Higher timeframe in transition (20-25). ' +
+                'Wait for ' + htfTF + ' to declare direction above 25 before trading ' + calcTF + ' setups.'
+        }
+      };
+    }
+
+    // HTF is trending (ADX > 25) — check DI alignment
+    const htfBullish = htfPdi > htfMdi;
+    const htfBearish = htfMdi > htfPdi;
+    const htfGap     = Math.abs(htfPdi - htfMdi).toFixed(1);
+
+    if (dir === 'BUY') {
+      if (htfBullish) {
+        return {
+          skip: false,
+          htfBlocked: false,
+          check: {
+            ok: true,
+            htf: true,
+            text: '📡 ' + htfTF + ' BULLISH — ADX ' + htfAdx.toFixed(1) +
+                  ' · +DI ' + htfPdi.toFixed(1) + ' > -DI ' + htfMdi.toFixed(1) +
+                  ' (gap ' + htfGap + '). Higher timeframe aligned with BUY. High probability setup.'
+          }
+        };
+      } else {
+        return {
+          skip: false,
+          htfBlocked: true,
+          check: {
+            ok: false,
+            htf: true,
+            text: '📡 ' + htfTF + ' BEARISH — ADX ' + htfAdx.toFixed(1) +
+                  ' · -DI ' + htfMdi.toFixed(1) + ' > +DI ' + htfPdi.toFixed(1) +
+                  ' (gap ' + htfGap + '). Higher timeframe is trending AGAINST your BUY. ' +
+                  'This is a counter-trend trade. High fake breakout risk. DO NOT ENTER.'
+          }
+        };
+      }
+    } else if (dir === 'SELL') {
+      if (htfBearish) {
+        return {
+          skip: false,
+          htfBlocked: false,
+          check: {
+            ok: true,
+            htf: true,
+            text: '📡 ' + htfTF + ' BEARISH — ADX ' + htfAdx.toFixed(1) +
+                  ' · -DI ' + htfMdi.toFixed(1) + ' > +DI ' + htfPdi.toFixed(1) +
+                  ' (gap ' + htfGap + '). Higher timeframe aligned with SELL. High probability setup.'
+          }
+        };
+      } else {
+        return {
+          skip: false,
+          htfBlocked: true,
+          check: {
+            ok: false,
+            htf: true,
+            text: '📡 ' + htfTF + ' BULLISH — ADX ' + htfAdx.toFixed(1) +
+                  ' · +DI ' + htfPdi.toFixed(1) + ' > -DI ' + htfMdi.toFixed(1) +
+                  ' (gap ' + htfGap + '). Higher timeframe is trending AGAINST your SELL. ' +
+                  'This is a counter-trend trade. High fake breakout risk. DO NOT ENTER.'
+          }
+        };
+      }
+    }
+
+    return { skip:true, check:null, htfBlocked:false };
   }
 
   // ══════════════════════════════════════════════════════
@@ -1801,6 +1991,9 @@ Return ONLY the JSON object with no other text.`,
     const ndi     = +document.getElementById('c_ndi').value;
     const rsi     = +document.getElementById('c_rsi').value;
     const ep      = +document.getElementById('c_ep').value || 0;
+    const htfAdx  = +document.getElementById('c_htf_adx').value || 0;
+    const htfPdi  = +document.getElementById('c_htf_pdi').value || 0;
+    const htfNdi  = +document.getElementById('c_htf_ndi').value || 0;
     const lot     = +document.getElementById('c_lot').value;
     const balance = +document.getElementById('c_balance').value;
     const lev     = +document.getElementById('c_lev').value;
@@ -1854,8 +2047,38 @@ Return ONLY the JSON object with no other text.`,
 
     document.getElementById('c_dir').style.color = dirColor;
 
+    // ── HTF ALIGNMENT CHECK — runs before all other checks ──
+    const htf = runHTFCheck(htfAdx, htfPdi, htfNdi, dir);
+
+    // Render inline HTF result in the HTF card
+    const htfResultEl = document.getElementById('htfResult');
+    if (!htf.skip && htf.check) {
+      const c = htf.check;
+      const bg     = c.ok===true  ? '#064e3b' : c.ok===false ? '#7f1d1d' : '#1c1917';
+      const border = c.ok===true  ? '#10b981' : c.ok===false ? '#ef4444' : '#78716c';
+      const color  = c.ok===true  ? '#6ee7b7' : c.ok===false ? '#fca5a5' : '#d6d3d1';
+      const icon   = c.ok===true  ? '✅' : c.ok===false ? '❌' : '⚠️';
+      htfResultEl.style.display = 'block';
+      htfResultEl.style.background = bg;
+      htfResultEl.style.border = '1.5px solid ' + border;
+      htfResultEl.innerHTML = `<div style="display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:17px;flex-shrink:0;">${icon}</span>
+        <span style="font-size:12px;font-weight:700;line-height:1.6;color:${color};font-family:'JetBrains Mono',monospace;">${c.text}</span>
+      </div>`;
+    } else {
+      htfResultEl.style.display = 'none';
+    }
+
     // ── VALIDATION ──
     const v = runCalcValidation(adx, pdi, ndi, rsi, entry, sar, dir, ep);
+
+    // Prepend HTF check into the checks array as the very first item
+    if (!htf.skip && htf.check) {
+      v.checks.unshift(htf.check);
+    }
+
+    // HTF blocked overrides everything — even if all current TF checks pass
+    const htfBlocked = htf.htfBlocked;
 
     // ── RENDER CHECKS ──
     const checksHTML = v.checks.map(c => {
@@ -1887,7 +2110,10 @@ Return ONLY the JSON object with no other text.`,
 
     // ── RESULT BANNER ──
     let resultBg, resultText;
-    if (v.noMans) {
+    if (htfBlocked) {
+      resultBg   = '#3b0764';
+      resultText = '📡  HIGHER TIMEFRAME AGAINST YOU — Counter-trend trade. High fake breakout risk. DO NOT ENTER. Wait for HTF to align.';
+    } else if (v.noMans) {
       resultBg   = '#374151';
       resultText = '⏸  NO MANS LAND — ADX ' + adx.toFixed(1) + ' is between 20-25. This timeframe has no valid setup. Close this chart and wait.';
     } else if (v.epBlocked) {
@@ -1907,7 +2133,10 @@ Return ONLY the JSON object with no other text.`,
 
     // ── TRADE HEADER ──
     const th = document.getElementById('tradeHeader');
-    if (v.noMans) {
+    if (htfBlocked) {
+      th.style.background = '#3b0764';
+      document.getElementById('tradeHeaderSub').textContent = '📡 COUNTER-TREND — ' + (HTF_MAP[calcTF]||'') + ' TRENDING AGAINST YOU';
+    } else if (v.noMans) {
       th.style.background = '#374151';
       document.getElementById('tradeHeaderSub').textContent = '⏸ NO MANS LAND — ' + C_TIMEFRAMES[calcTF].label.toUpperCase();
     } else if (v.epBlocked) {
