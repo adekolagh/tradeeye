@@ -864,13 +864,91 @@ canvas { display: none; }
         </div>
       </div>
 
-      <!-- HIGHER TIMEFRAME ALIGNMENT CARD -->
-      <div class="calc-card" style="background:#0f172a; border:2px solid #6366f1;">
-        <div class="calc-sec" id="htfSec" style="color:#a5b4fc;">Higher Timeframe Alignment — Check W1 Before D1</div>
-        <div style="font-size:11px; font-weight:600; color:#64748b; font-family:'JetBrains Mono',monospace; line-height:1.7; margin-bottom:14px; padding:10px 12px; background:#1e293b; border-radius:10px; border-left:3px solid #6366f1;">
-          Open the <span id="htfLabel" style="color:#a5b4fc; font-weight:900;">W1</span> chart for the same instrument.<br>
-          Enter only 3 values: ADX, +DI and -DI from that chart.<br>
-          <span style="color:#f59e0b; font-weight:800;">If W1 is trending AGAINST your trade — do not enter. It will fake out.</span>
+      <!-- ═══════════════════════════════════════════════ -->
+      <!-- MACRO CONTEXT — Monthly (saved per instrument) -->
+      <!-- ═══════════════════════════════════════════════ -->
+      <div class="calc-card" style="background:#0c0a1e; border:2px solid #7c3aed;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+          <div class="calc-sec" style="color:#c4b5fd; margin-bottom:0;">Monthly Context — MN</div>
+          <div id="mnSavedTag" style="display:none; font-size:10px; font-weight:800; color:#7c3aed; background:#1e1b4b; padding:3px 10px; border-radius:20px; font-family:'Rajdhani',sans-serif; letter-spacing:1px;">SAVED ✓</div>
+        </div>
+        <div style="font-size:11px; font-weight:600; color:#4c1d95; font-family:'JetBrains Mono',monospace; margin-bottom:12px;">
+          Enter once per month. Saved per instrument. Rarely changes.
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div>
+            <label class="calc-lbl" style="color:#a78bfa;">MN ADX</label>
+            <input id="c_mn_adx" class="calc-inp" type="number" step="any" placeholder="ADX"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#1e1b4b; border-color:#7c3aed; color:#ede9fe; font-weight:800;">
+          </div>
+          <div>
+            <label class="calc-lbl" style="color:#34d399;">MN +DI</label>
+            <input id="c_mn_pdi" class="calc-inp" type="number" step="any" placeholder="+DI"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#1e1b4b; border-color:#059669; color:#d1fae5; font-weight:800;">
+          </div>
+          <div>
+            <label class="calc-lbl" style="color:#f87171;">MN -DI</label>
+            <input id="c_mn_ndi" class="calc-inp" type="number" step="any" placeholder="-DI"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#1e1b4b; border-color:#dc2626; color:#fee2e2; font-weight:800;">
+          </div>
+        </div>
+        <button onclick="saveMacroTF('MN')"
+          style="width:100%; padding:10px; background:#7c3aed; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:900; font-family:'Rajdhani',sans-serif; letter-spacing:1px; cursor:pointer;">
+          💾 SAVE MONTHLY VALUES
+        </button>
+        <div id="mnResult" style="display:none; padding:10px 12px; border-radius:10px; margin-top:10px;"></div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════ -->
+      <!-- MACRO CONTEXT — Weekly (saved per instrument)   -->
+      <!-- ════════════════════════════════════════════════ -->
+      <div class="calc-card" style="background:#0a0e1e; border:2px solid #3b82f6;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+          <div class="calc-sec" style="color:#93c5fd; margin-bottom:0;">Weekly Context — W1</div>
+          <div id="w1SavedTag" style="display:none; font-size:10px; font-weight:800; color:#3b82f6; background:#1e3a5f; padding:3px 10px; border-radius:20px; font-family:'Rajdhani',sans-serif; letter-spacing:1px;">SAVED ✓</div>
+        </div>
+        <div style="font-size:11px; font-weight:600; color:#1e3a5f; font-family:'JetBrains Mono',monospace; margin-bottom:12px;">
+          Enter once per week. Saved per instrument. Update every Sunday.
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div>
+            <label class="calc-lbl" style="color:#60a5fa;">W1 ADX</label>
+            <input id="c_w1_adx" class="calc-inp" type="number" step="any" placeholder="ADX"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#0f1e3d; border-color:#3b82f6; color:#dbeafe; font-weight:800;">
+          </div>
+          <div>
+            <label class="calc-lbl" style="color:#34d399;">W1 +DI</label>
+            <input id="c_w1_pdi" class="calc-inp" type="number" step="any" placeholder="+DI"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#0f1e3d; border-color:#059669; color:#d1fae5; font-weight:800;">
+          </div>
+          <div>
+            <label class="calc-lbl" style="color:#f87171;">W1 -DI</label>
+            <input id="c_w1_ndi" class="calc-inp" type="number" step="any" placeholder="-DI"
+              inputmode="decimal" oninput="calcUpdate()"
+              style="background:#0f1e3d; border-color:#dc2626; color:#fee2e2; font-weight:800;">
+          </div>
+        </div>
+        <button onclick="saveMacroTF('W1')"
+          style="width:100%; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:900; font-family:'Rajdhani',sans-serif; letter-spacing:1px; cursor:pointer;">
+          💾 SAVE WEEKLY VALUES
+        </button>
+        <div id="w1Result" style="display:none; padding:10px 12px; border-radius:10px; margin-top:10px;"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════ -->
+      <!-- IMMEDIATE HTF — Dynamic (D1 when trading 4H etc) -->
+      <!-- ══════════════════════════════════════════════════ -->
+      <div id="htfImmCard" class="calc-card" style="background:#0f172a; border:2px solid #6366f1;">
+        <div class="calc-sec" id="htfSec" style="color:#a5b4fc;">Immediate HTF — Check D1 Before 4H</div>
+        <div style="font-size:11px; font-weight:600; color:#334155; font-family:'JetBrains Mono',monospace; line-height:1.7; margin-bottom:14px; padding:10px 12px; background:#1e293b; border-radius:10px; border-left:3px solid #6366f1;">
+          Open the <span id="htfLabel" style="color:#a5b4fc; font-weight:900;">D1</span> chart for the same instrument.<br>
+          Enter ADX, +DI and -DI. This is the bridge between saved macro and your entry TF.<br>
+          <span style="color:#f59e0b; font-weight:800;">All three timeframes must align. Any opposition = do not enter.</span>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
           <div>
@@ -1510,6 +1588,7 @@ Return ONLY the JSON object with no other text.`,
       sel.appendChild(grp);
     });
     sel.value = 'AUDUSD';
+    loadMacroContext('AUDUSD');
 
     // Build TF pills
     const container = document.getElementById('tfPills');
@@ -1532,31 +1611,99 @@ Return ONLY the JSON object with no other text.`,
     calcUpdate();
   }
 
+  // ── MACRO CONTEXT SAVE / LOAD ──
+  // Saves MN and W1 values per instrument to localStorage.
+  // Key format: tradeeye_macro_{pair}_{TF}
+
+  function getMacroKey(pair, tf) {
+    return 'tradeeye_macro_' + pair.toUpperCase() + '_' + tf;
+  }
+
+  function saveMacroTF(tf) {
+    const pair = getActivePairName();
+    const adx  = document.getElementById('c_' + tf.toLowerCase() + '_adx').value.trim();
+    const pdi  = document.getElementById('c_' + tf.toLowerCase() + '_pdi').value.trim();
+    const ndi  = document.getElementById('c_' + tf.toLowerCase() + '_ndi').value.trim();
+
+    if (!adx || !pdi || !ndi) {
+      toast('⚠ Fill ADX, +DI and -DI before saving ' + tf);
+      return;
+    }
+
+    const data = { adx, pdi, ndi, pair, savedAt: new Date().toLocaleDateString() };
+    localStorage.setItem(getMacroKey(pair, tf), JSON.stringify(data));
+
+    // Show saved tag
+    const tag = document.getElementById(tf.toLowerCase() + 'SavedTag');
+    if (tag) tag.style.display = 'block';
+
+    // Show result confirmation
+    const res = document.getElementById(tf.toLowerCase() + 'Result');
+    if (res) {
+      res.style.display = 'block';
+      res.style.background = '#064e3b';
+      res.style.border = '1.5px solid #10b981';
+      res.innerHTML = "<span style=\"font-size:12px;font-weight:700;color:#6ee7b7;font-family:'JetBrains Mono',monospace;\">" +
+        '✅ ' + tf + ' saved for ' + pair + ' — ' + data.savedAt + ' · ADX ' + adx + ' · +DI ' + pdi + ' · -DI ' + ndi + '</span>';
+    }
+
+    calcUpdate();
+    toast('✅ ' + tf + ' context saved for ' + pair);
+  }
+
+  function loadMacroContext(pair) {
+    ['MN', 'W1'].forEach(tf => {
+      const key  = getMacroKey(pair, tf);
+      const raw  = localStorage.getItem(key);
+      const tag  = document.getElementById(tf.toLowerCase() + 'SavedTag');
+      const res  = document.getElementById(tf.toLowerCase() + 'Result');
+
+      if (raw) {
+        try {
+          const d = JSON.parse(raw);
+          document.getElementById('c_' + tf.toLowerCase() + '_adx').value = d.adx || '';
+          document.getElementById('c_' + tf.toLowerCase() + '_pdi').value = d.pdi || '';
+          document.getElementById('c_' + tf.toLowerCase() + '_ndi').value = d.ndi || '';
+          if (tag) tag.style.display = 'block';
+          if (res) {
+            res.style.display = 'block';
+            res.style.background = '#1e1b4b';
+            res.style.border = '1.5px solid #6366f1';
+            res.innerHTML = "<span style=\"font-size:11px;font-weight:700;color:#a5b4fc;font-family:'JetBrains Mono',monospace;\">" +
+              '📡 Loaded saved ' + tf + ' for ' + d.pair + ' — saved ' + d.savedAt + '</span>';
+          }
+        } catch(e) {}
+      } else {
+        // Clear fields for new pair
+        document.getElementById('c_' + tf.toLowerCase() + '_adx').value = '';
+        document.getElementById('c_' + tf.toLowerCase() + '_pdi').value = '';
+        document.getElementById('c_' + tf.toLowerCase() + '_ndi').value = '';
+        if (tag) tag.style.display = 'none';
+        if (res) res.style.display = 'none';
+      }
+    });
+  }
+
   function updateTFContext() {
     const tf    = C_TIMEFRAMES[calcTF];
     const htfTF = HTF_MAP[calcTF];
-    const htfLabel = htfTF ? (C_TIMEFRAMES[htfTF].label + ' (' + htfTF + ')') : 'None';
 
     document.getElementById('tfBadge').textContent = calcTF;
     document.getElementById('tfLabel').textContent = tf.label + ' Chart';
     document.getElementById('tfCtx').textContent = tf.ctx;
     document.getElementById('calcIndSec').textContent = 'Wilder Indicators — ' + calcTF + ' Chart';
 
-    // Update HTF card header and instruction label
-    document.getElementById('htfLabel').textContent = htfTF || 'N/A';
-    if (htfTF) {
+    // Immediate HTF card — only show when there is an intermediate TF
+    // Hide it for D1 (W1 is already in saved cards) and W1/MN
+    const needsImmHTF = !['D1','W1','MN'].includes(calcTF);
+    const htfImmCard  = document.getElementById('htfImmCard');
+    if (htfImmCard) htfImmCard.style.display = needsImmHTF ? 'block' : 'none';
+
+    if (htfTF && needsImmHTF) {
+      document.getElementById('htfLabel').textContent = htfTF;
       document.getElementById('htfSec').textContent =
-        'Higher Timeframe Alignment — Check ' + htfTF + ' Before ' + calcTF;
-    } else {
-      document.getElementById('htfSec').textContent =
-        'Higher Timeframe Alignment — Not Required (Monthly chart)';
+        'Immediate HTF — Check ' + htfTF + ' Before ' + calcTF;
     }
-    // Update HTF input placeholders to reflect the required TF
-    const htfNote = htfTF ? ('From your ' + htfTF + ' chart') : 'N/A';
-    ['c_htf_adx','c_htf_pdi','c_htf_ndi'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.placeholder = htfTF ? el.placeholder : 'N/A';
-    });
   }
 
   // ── CUSTOM PAIR TOGGLE ──
@@ -1644,6 +1791,8 @@ Return ONLY the JSON object with no other text.`,
     } else {
       noteEl.style.display = 'none';
     }
+    // Auto-load saved MN and W1 values for this pair
+    loadMacroContext(pair);
     calcUpdate();
   }
 
@@ -1704,128 +1853,74 @@ Return ONLY the JSON object with no other text.`,
   }
 
   // ══════════════════════════════════════════════════════
-  // ── HTF ALIGNMENT CHECK — Runs BEFORE all current TF checks
+  // ── HTF ALIGNMENT — Full top-down check
   // ══════════════════════════════════════════════════════
-  // Rule: Weekly must confirm Daily. Daily must confirm 4H.
-  // If HTF is trending AGAINST your direction — hard block.
-  // No other rules matter if the bigger trend is against you.
-  // Works identically for all instruments and all timeframes.
+  // Checks ALL relevant higher timeframes for the active TF:
+  //   Monthly (saved) → Weekly (saved) → Immediate HTF (entered)
+  // Any single TF trending against direction = hard block.
+  // Works for all instruments, all pairs, all timeframes.
   // ══════════════════════════════════════════════════════
+
+  function checkOneTF(tfName, adx, pdi, mdi, dir) {
+    // Returns a single check object for one higher TF
+    if (!adx || !pdi || !mdi) {
+      return {
+        ok: null, htf: true,
+        text: '📡 ' + tfName + ' — Not entered. Open ' + tfName + ' chart and fill values to confirm macro alignment.'
+      };
+    }
+    const mode = getMarketMode(adx);
+    const gap  = Math.abs(pdi - mdi).toFixed(1);
+
+    if (mode === 'RANGE') return {
+      ok: null, htf: true,
+      text: '📡 ' + tfName + ' ADX ' + adx.toFixed(1) + ' — Ranging (below 20). No macro trend. Trade with caution. Quick exits only.'
+    };
+    if (mode === 'NOmans') return {
+      ok: null, htf: true,
+      text: '📡 ' + tfName + ' ADX ' + adx.toFixed(1) + ' — Transitioning (20-25). Wait for ' + tfName + ' to declare above 25.'
+    };
+
+    // Trending
+    if (dir === 'BUY') {
+      return pdi > mdi
+        ? { ok:true,  htf:true, text:'📡 ' + tfName + ' BULLISH — ADX ' + adx.toFixed(1) + ' · +DI ' + pdi.toFixed(1) + ' > -DI ' + mdi.toFixed(1) + ' (gap ' + gap + '). Aligned with BUY.' }
+        : { ok:false, htf:true, blocked:true, text:'📡 ' + tfName + ' BEARISH — ADX ' + adx.toFixed(1) + ' · -DI ' + mdi.toFixed(1) + ' > +DI ' + pdi.toFixed(1) + ' (gap ' + gap + '). AGAINST your BUY. Fake breakout risk. DO NOT ENTER.' };
+    } else {
+      return mdi > pdi
+        ? { ok:true,  htf:true, text:'📡 ' + tfName + ' BEARISH — ADX ' + adx.toFixed(1) + ' · -DI ' + mdi.toFixed(1) + ' > +DI ' + pdi.toFixed(1) + ' (gap ' + gap + '). Aligned with SELL.' }
+        : { ok:false, htf:true, blocked:true, text:'📡 ' + tfName + ' BULLISH — ADX ' + adx.toFixed(1) + ' · +DI ' + pdi.toFixed(1) + ' > -DI ' + mdi.toFixed(1) + ' (gap ' + gap + '). AGAINST your SELL. Fake breakout risk. DO NOT ENTER.' };
+    }
+  }
 
   function runHTFCheck(htfAdx, htfPdi, htfMdi, dir) {
-    const htfTF  = HTF_MAP[calcTF];
+    // Monthly chart — no HTF needed
+    if (calcTF === 'MN') return { skip:true, checks:[], htfBlocked:false };
 
-    // Monthly chart — no higher TF exists, skip
-    if (!htfTF) {
-      return { skip:true, check:null, htfBlocked:false };
+    const checks = [];
+
+    // ── Always check MN (saved) ──
+    const mnAdx = +document.getElementById('c_mn_adx').value || 0;
+    const mnPdi = +document.getElementById('c_mn_pdi').value || 0;
+    const mnNdi = +document.getElementById('c_mn_ndi').value || 0;
+    checks.push(checkOneTF('MN', mnAdx, mnPdi, mnNdi, dir));
+
+    // ── Always check W1 (saved) — except when active TF IS W1 ──
+    if (calcTF !== 'W1') {
+      const w1Adx = +document.getElementById('c_w1_adx').value || 0;
+      const w1Pdi = +document.getElementById('c_w1_pdi').value || 0;
+      const w1Ndi = +document.getElementById('c_w1_ndi').value || 0;
+      checks.push(checkOneTF('W1', w1Adx, w1Pdi, w1Ndi, dir));
     }
 
-    // Fields not filled — warn but do not block
-    if (!htfAdx || !htfPdi || !htfMdi) {
-      return {
-        skip: false,
-        htfBlocked: false,
-        check: {
-          ok: null,
-          htf: true,
-          text: '📡 ' + htfTF + ' NOT CHECKED — Open your ' + htfTF + ' chart and fill in ADX, +DI, -DI above. ' +
-                'Trading without checking the higher timeframe risks entering against the macro trend.'
-        }
-      };
+    // ── Check immediate HTF — only for TFs below D1 ──
+    if (!['D1','W1','MN'].includes(calcTF)) {
+      const htfTF = HTF_MAP[calcTF];
+      checks.push(checkOneTF(htfTF, htfAdx, htfPdi, htfMdi, dir));
     }
 
-    const htfMode = getMarketMode(htfAdx);
-
-    // HTF ranging — no macro trend in either direction
-    if (htfMode === 'RANGE') {
-      return {
-        skip: false,
-        htfBlocked: false,
-        check: {
-          ok: null,
-          htf: true,
-          text: '📡 ' + htfTF + ' ADX ' + htfAdx.toFixed(1) + ' — Higher timeframe is RANGING. ' +
-                'No macro trend supporting this trade. Reduce position size. Quick exit only. Do not trail.'
-        }
-      };
-    }
-
-    // HTF No Mans Land — transitioning
-    if (htfMode === 'NOmans') {
-      return {
-        skip: false,
-        htfBlocked: false,
-        check: {
-          ok: null,
-          htf: true,
-          text: '📡 ' + htfTF + ' ADX ' + htfAdx.toFixed(1) + ' — Higher timeframe in transition (20-25). ' +
-                'Wait for ' + htfTF + ' to declare direction above 25 before trading ' + calcTF + ' setups.'
-        }
-      };
-    }
-
-    // HTF is trending (ADX > 25) — check DI alignment
-    const htfBullish = htfPdi > htfMdi;
-    const htfBearish = htfMdi > htfPdi;
-    const htfGap     = Math.abs(htfPdi - htfMdi).toFixed(1);
-
-    if (dir === 'BUY') {
-      if (htfBullish) {
-        return {
-          skip: false,
-          htfBlocked: false,
-          check: {
-            ok: true,
-            htf: true,
-            text: '📡 ' + htfTF + ' BULLISH — ADX ' + htfAdx.toFixed(1) +
-                  ' · +DI ' + htfPdi.toFixed(1) + ' > -DI ' + htfMdi.toFixed(1) +
-                  ' (gap ' + htfGap + '). Higher timeframe aligned with BUY. High probability setup.'
-          }
-        };
-      } else {
-        return {
-          skip: false,
-          htfBlocked: true,
-          check: {
-            ok: false,
-            htf: true,
-            text: '📡 ' + htfTF + ' BEARISH — ADX ' + htfAdx.toFixed(1) +
-                  ' · -DI ' + htfMdi.toFixed(1) + ' > +DI ' + htfPdi.toFixed(1) +
-                  ' (gap ' + htfGap + '). Higher timeframe is trending AGAINST your BUY. ' +
-                  'This is a counter-trend trade. High fake breakout risk. DO NOT ENTER.'
-          }
-        };
-      }
-    } else if (dir === 'SELL') {
-      if (htfBearish) {
-        return {
-          skip: false,
-          htfBlocked: false,
-          check: {
-            ok: true,
-            htf: true,
-            text: '📡 ' + htfTF + ' BEARISH — ADX ' + htfAdx.toFixed(1) +
-                  ' · -DI ' + htfMdi.toFixed(1) + ' > +DI ' + htfPdi.toFixed(1) +
-                  ' (gap ' + htfGap + '). Higher timeframe aligned with SELL. High probability setup.'
-          }
-        };
-      } else {
-        return {
-          skip: false,
-          htfBlocked: true,
-          check: {
-            ok: false,
-            htf: true,
-            text: '📡 ' + htfTF + ' BULLISH — ADX ' + htfAdx.toFixed(1) +
-                  ' · +DI ' + htfPdi.toFixed(1) + ' > -DI ' + htfMdi.toFixed(1) +
-                  ' (gap ' + htfGap + '). Higher timeframe is trending AGAINST your SELL. ' +
-                  'This is a counter-trend trade. High fake breakout risk. DO NOT ENTER.'
-          }
-        };
-      }
-    }
-
-    return { skip:true, check:null, htfBlocked:false };
+    const htfBlocked = checks.some(c => c.blocked);
+    return { skip:false, checks, htfBlocked };
   }
 
   // ══════════════════════════════════════════════════════
@@ -2047,38 +2142,43 @@ Return ONLY the JSON object with no other text.`,
 
     document.getElementById('c_dir').style.color = dirColor;
 
-    // ── HTF ALIGNMENT CHECK — runs before all other checks ──
+    // ── HTF ALIGNMENT CHECK — runs before all current TF checks ──
     const htf = runHTFCheck(htfAdx, htfPdi, htfNdi, dir);
+    const htfBlocked = htf.htfBlocked;
 
-    // Render inline HTF result in the HTF card
+    // Render inline result inside immediate HTF card
     const htfResultEl = document.getElementById('htfResult');
-    if (!htf.skip && htf.check) {
-      const c = htf.check;
-      const bg     = c.ok===true  ? '#064e3b' : c.ok===false ? '#7f1d1d' : '#1c1917';
-      const border = c.ok===true  ? '#10b981' : c.ok===false ? '#ef4444' : '#78716c';
-      const color  = c.ok===true  ? '#6ee7b7' : c.ok===false ? '#fca5a5' : '#d6d3d1';
-      const icon   = c.ok===true  ? '✅' : c.ok===false ? '❌' : '⚠️';
-      htfResultEl.style.display = 'block';
-      htfResultEl.style.background = bg;
-      htfResultEl.style.border = '1.5px solid ' + border;
-      htfResultEl.innerHTML = `<div style="display:flex;align-items:flex-start;gap:10px;">
-        <span style="font-size:17px;flex-shrink:0;">${icon}</span>
-        <span style="font-size:12px;font-weight:700;line-height:1.6;color:${color};font-family:'JetBrains Mono',monospace;">${c.text}</span>
-      </div>`;
-    } else {
-      htfResultEl.style.display = 'none';
+    if (htfResultEl) {
+      const immChecks = htf.checks ? htf.checks.filter(c => {
+        // Only the immediate HTF check goes into the card (last one, non-MN non-W1)
+        const htfTF = HTF_MAP[calcTF];
+        return htfTF && c.text && c.text.startsWith('📡 ' + htfTF);
+      }) : [];
+      if (immChecks.length) {
+        const c = immChecks[0];
+        const bg     = c.ok===true  ? '#064e3b' : c.ok===false ? '#7f1d1d' : '#1c1917';
+        const border = c.ok===true  ? '#10b981' : c.ok===false ? '#ef4444' : '#78716c';
+        const color  = c.ok===true  ? '#6ee7b7' : c.ok===false ? '#fca5a5' : '#d6d3d1';
+        const icon   = c.ok===true  ? '✅' : c.ok===false ? '❌' : '⚠️';
+        htfResultEl.style.display = 'block';
+        htfResultEl.style.background = bg;
+        htfResultEl.style.border = '1.5px solid ' + border;
+        htfResultEl.innerHTML = `<div style="display:flex;align-items:flex-start;gap:10px;">
+          <span style="font-size:17px;flex-shrink:0;">${icon}</span>
+          <span style="font-size:12px;font-weight:700;line-height:1.6;color:${color};font-family:'JetBrains Mono',monospace;">${c.text}</span>
+        </div>`;
+      } else {
+        htfResultEl.style.display = 'none';
+      }
     }
 
     // ── VALIDATION ──
     const v = runCalcValidation(adx, pdi, ndi, rsi, entry, sar, dir, ep);
 
-    // Prepend HTF check into the checks array as the very first item
-    if (!htf.skip && htf.check) {
-      v.checks.unshift(htf.check);
+    // Prepend all HTF checks into validation as first items
+    if (!htf.skip && htf.checks && htf.checks.length) {
+      htf.checks.slice().reverse().forEach(c => v.checks.unshift(c));
     }
-
-    // HTF blocked overrides everything — even if all current TF checks pass
-    const htfBlocked = htf.htfBlocked;
 
     // ── RENDER CHECKS ──
     const checksHTML = v.checks.map(c => {
