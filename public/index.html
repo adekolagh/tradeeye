@@ -1334,32 +1334,34 @@ Return exactly these keys (use null if a value cannot be found):
 
 Follow these exact rules for each field:
 
-CRITICAL WARNING — BAR SELECTION BUG: TradingView shows historical values in the header when a past bar is selected or bar replay is active. The header indicator line (top-left) may show OLD values from a selected candle — NOT the current bar. The right-side colored price boxes ALWAYS show current live values. ALWAYS use right-side boxes as PRIMARY source. Only use the header line as a last resort when no right-side box exists.
+⚠ CRITICAL — BAR SELECTION WARNING: When a past bar is clicked or bar replay is active in TradingView, the indicator header lines (top-left) show HISTORICAL values for that selected bar — NOT the current values. The right-side colored price boxes on the right axis ALWAYS show current live values regardless of which bar is selected. YOU MUST use right-side boxes as the PRIMARY source for SAR, ATR, ADX, +DI, -DI and RSI. The header line is only a last resort if no right-side box exists.
 
-CRITICAL FOR ALL NUMERIC VALUES: Return numbers WITHOUT commas. "4,065.80" → "4065.80", "92093.54" → "92093.54", "71300.44" → "71300.44". Never include commas in any returned number.
+CRITICAL FOR ALL NUMERIC VALUES: Return numbers WITHOUT commas. "92,093.54" → "92093.54", "71,300.44" → "71300.44", "4,065.80" → "4065.80". Never include commas in any returned number.
 
-This image may be a screenshot, a compressed image, or a photo of a screen. Extract all values you can read even on lower quality images.
+This image may be a screenshot or compressed image — extract all values you can read even at lower quality.
 
-PAIR: Top-left corner instrument symbol. Strip exchange suffixes but keep full pair name. "Gold Spot / U.S. Dollar" → "XAUUSD". "Bitcoin / U.S. Dollar" → "BTCUSD". "BEATUSDT Perpetual Contract" → "BEATUSDT". ".P" suffix → strip it.
+PAIR: Top-left instrument symbol. Strip exchange suffixes. "Gold Spot / U.S. Dollar" → "XAUUSD". "Bitcoin / U.S. Dollar" → "BTCUSD". "BEATUSDT Perpetual Contract" → "BEATUSDT". Strip ".P" suffix.
 
-TIMEFRAME: Top toolbar — find the HIGHLIGHTED/BOLD timeframe button. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return only the active one e.g. "D", "4h", "1h".
+TIMEFRAME: Top toolbar — find the HIGHLIGHTED/BOLD button. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return only the active one e.g. "D", "4h", "1h".
 
-ENTRY: OHLC line at top of chart — use ONLY the C (close) value. e.g. "C 92,093.54" → return "92093.54". Do NOT use right-side price scale numbers or buy/sell box prices.
+ENTRY — CURRENT PRICE ONLY: The OHLC header line is NOT reliable for entry because it shows the selected bar's historical close when any past bar is clicked. Instead use these sources in this priority order:
+1. FIRST CHOICE — The right-side vertical price axis: look for the most recent price label, often a highlighted or blinking number e.g. "92093.54" on the right edge of the chart.
+2. SECOND CHOICE — The buy/sell price boxes in the top-left corner of the chart. These show current bid/ask e.g. red box "66,416.76 SELL" and blue box "66,416.77 BUY". Use the mid value or the one matching the trade direction.
+3. LAST RESORT ONLY — The OHLC "C" close value from the header, but ONLY if no bar is selected and no replay cursor is active on the chart. Never use it if a historical date is shown at the bottom.
 
-SAR: RIGHT-SIDE FIRST — Look for a pink or red labeled box on the right price axis labeled "Wilder Structure (Clean Simple):SAR" — use that value. e.g. pink box showing "71300.44" → return "71300.44". Only if no right-side box exists, use the LAST number on the "Wilder Structure (Clean Simple)" header line as fallback.
+EP: HIGH of crossover candle where -DI crossed above +DI (SELL), or LOW where +DI crossed above -DI (BUY). Return null if not confident.
 
-ATR: RIGHT-SIDE FIRST — Look for the right-side box labeled "ATR" showing the ATR(14) value. e.g. blue box showing "3273.02" → return "3273.02". Fallback: "ATR-Current" header line last number.
+SAR — RIGHT-SIDE BOX IS PRIMARY: Look on the right price axis for a pink or red labeled box showing "Wilder Structure (Clean Simple):SAR" — use that value e.g. "71300.44". ONLY use the header line last number as fallback if no right-side box is visible.
 
-ADX, +DI, -DI: RIGHT-SIDE BOXES ARE THE ONLY CORRECT SOURCE — On the right price axis of the ADX panel look for three colored boxes:
-- GREEN/TEAL box labeled "ADX" → this is adx
-- RED box labeled "-DI" → this is minus_di  
-- CYAN/LIGHT-BLUE box labeled "+DI" → this is plus_di
-Use ONLY these right-side box values. e.g. ADX box = "50.21", -DI box = "29.13", +DI box = "13.83".
-NEVER use the header line values for ADX/DI — those show historical values when a bar is selected and will be wrong.
+ATR — RIGHT-SIDE BOX IS PRIMARY: Look on the right side for a box labeled "ATR" showing ATR(14) value e.g. "3273.02". ONLY use the "ATR-Current" header line as fallback if no right-side box is visible.
 
-RSI: RIGHT-SIDE FIRST — look for the right-side box labeled "RSI" or "WILDER RSI". Return that value. Do NOT return the 50.0 midline value.
+ADX, +DI, -DI — RIGHT-SIDE BOXES ARE THE ONLY CORRECT SOURCE. On the right axis of the ADX panel find three colored boxes:
+- GREEN or TEAL box labeled "ADX" → adx value e.g. "50.21"
+- RED box labeled "-DI" → minus_di value e.g. "29.13"
+- CYAN or LIGHT BLUE box labeled "+DI" → plus_di value e.g. "13.83"
+NEVER use the ADX header line for these values — it shows historical data when any bar is selected and will be wrong.
 
-EP: The HIGH of the candle where -DI crossed above +DI (SELL setup) or LOW of candle where +DI crossed above -DI (BUY setup). Return null if not confident.
+RSI — RIGHT-SIDE BOX IS PRIMARY: Look for the box labeled "RSI" or "WILDER RSI" on the right axis. Do NOT return the 50.0 midline value.
 
 Return ONLY the JSON object with no other text.`,
           messages: [{
