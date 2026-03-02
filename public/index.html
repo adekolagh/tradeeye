@@ -1332,36 +1332,65 @@ canvas { display: none; }
 Return exactly these keys (use null if a value cannot be found):
 {"pair":"","timeframe":"","entry":"","sar":"","atr":"","adx":"","plus_di":"","minus_di":"","rsi":"","ep":""}
 
-Follow these exact rules for each field:
+SOURCE RULES — READ THIS FIRST:
 
-⚠ CRITICAL — BAR SELECTION WARNING: When a past bar is clicked or bar replay is active in TradingView, the indicator header lines (top-left) show HISTORICAL values for that selected bar — NOT the current values. The right-side colored price boxes on the right axis ALWAYS show current live values regardless of which bar is selected. YOU MUST use right-side boxes as the PRIMARY source for SAR, ATR, ADX, +DI, -DI and RSI. The header line is only a last resort if no right-side box exists.
+The TradingView chart has two zones. The LEFT side (header lines, OHLC bar) shows values for whichever bar is selected — this changes when you click a candle and will show historical data. The RIGHT-SIDE AXIS shows current live values always, regardless of which bar is selected. For all indicator values you must use the RIGHT-SIDE AXIS ONLY. Never use header lines for any indicator value.
 
-CRITICAL FOR ALL NUMERIC VALUES: Return numbers WITHOUT commas. "92,093.54" → "92093.54", "71,300.44" → "71300.44", "4,065.80" → "4065.80". Never include commas in any returned number.
+The only two exceptions that do NOT come from the right-side axis are PAIR and TIMEFRAME — these come from fixed locations that never change.
 
-This image may be a screenshot or compressed image — extract all values you can read even at lower quality.
+NUMBERS: Strip all commas. "71,125.12" → "71125.12". "1,03587" → "1.03587". Never return a number with a comma.
 
-PAIR: Top-left instrument symbol. Strip exchange suffixes. "Gold Spot / U.S. Dollar" → "XAUUSD". "Bitcoin / U.S. Dollar" → "BTCUSD". "BEATUSDT Perpetual Contract" → "BEATUSDT". Strip ".P" suffix.
+═══ PAIR ═══
+Source: Top-left corner of the chart.
+Read the symbol shown e.g. "BTCUSD", "GBPCHF", "XAUUSD".
+Also check the chart title line e.g. "Great Britain Pound vs Swiss Franc" → "GBPCHF", "Bitcoin / U.S. Dollar" → "BTCUSD", "Gold Spot / U.S. Dollar" → "XAUUSD".
+Strip any exchange suffix or ".P" suffix.
 
-TIMEFRAME: Top toolbar — find the HIGHLIGHTED/BOLD button. Options: 1m 3m 5m 15m 30m 45m 1h 2h 4h D W M 3M 12M. Return only the active one e.g. "D", "4h", "1h".
+═══ TIMEFRAME ═══
+Source: Top toolbar only.
+Find the single HIGHLIGHTED or BOLD button among the timeframe options.
+It appears brighter or bolder than the others e.g. [1h] among 1m 5m 15m 30m 1h 4h D W M.
+Return exactly what it shows: "1h", "4h", "D", "W", "15m" etc.
 
-ENTRY — CURRENT PRICE ONLY: The OHLC header line is NOT reliable for entry because it shows the selected bar's historical close when any past bar is clicked. Instead use these sources in this priority order:
-1. FIRST CHOICE — The right-side vertical price axis: look for the most recent price label, often a highlighted or blinking number e.g. "92093.54" on the right edge of the chart.
-2. SECOND CHOICE — The buy/sell price boxes in the top-left corner of the chart. These show current bid/ask e.g. red box "66,416.76 SELL" and blue box "66,416.77 BUY". Use the mid value or the one matching the trade direction.
-3. LAST RESORT ONLY — The OHLC "C" close value from the header, but ONLY if no bar is selected and no replay cursor is active on the chart. Never use it if a historical date is shown at the bottom.
+═══ ENTRY ═══
+Source: Right-side price axis only.
+Look for the most prominent highlighted price label on the right edge of the main chart panel. It is usually a colored blinking box showing the current live price e.g. orange box "1.03587" or green box "66450.32".
+Never use the OHLC header line C value — it shows the selected bar close which may be historical.
 
-EP: HIGH of crossover candle where -DI crossed above +DI (SELL), or LOW where +DI crossed above -DI (BUY). Return null if not confident.
+═══ SAR ═══
+Source: Right-side axis of the main chart panel.
+Look for a labeled box showing "Wilder Structure (Clean Simple):SAR" with a price value next to it e.g. red/pink box "71125.12" or blue box "1.03547".
 
-SAR — RIGHT-SIDE BOX IS PRIMARY: Look on the right price axis for a pink or red labeled box showing "Wilder Structure (Clean Simple):SAR" — use that value e.g. "71300.44". ONLY use the header line last number as fallback if no right-side box is visible.
+═══ ATR ═══
+Source: Right-side axis of the ATR indicator panel.
+Look for a labeled box showing "ATR" or "ATR (14)" with its value e.g. blue box "3217.57" or dark red box "0.00184".
 
-ATR — RIGHT-SIDE BOX IS PRIMARY: Look on the right side for a box labeled "ATR" showing ATR(14) value e.g. "3273.02". ONLY use the "ATR-Current" header line as fallback if no right-side box is visible.
+═══ ADX ═══
+Source: Right-side axis of the ADX/DMI indicator panel only.
+Look for a labeled box showing "ADX" — it is typically green or teal e.g. "49.17" or "38.0573".
+Never use the header line — it shows historical values when any bar is selected.
 
-ADX, +DI, -DI — RIGHT-SIDE BOXES ARE THE ONLY CORRECT SOURCE. On the right axis of the ADX panel find three colored boxes:
-- GREEN or TEAL box labeled "ADX" → adx value e.g. "50.21"
-- RED box labeled "-DI" → minus_di value e.g. "29.13"
-- CYAN or LIGHT BLUE box labeled "+DI" → plus_di value e.g. "13.83"
-NEVER use the ADX header line for these values — it shows historical data when any bar is selected and will be wrong.
+═══ +DI (plus_di) ═══
+Source: Right-side axis of the ADX/DMI indicator panel only.
+Look for a labeled box showing "+DI" — it is typically cyan or light blue e.g. "13.06" or "21.3774".
+Never use the header line.
 
-RSI — RIGHT-SIDE BOX IS PRIMARY: Look for the box labeled "RSI" or "WILDER RSI" on the right axis. Do NOT return the 50.0 midline value.
+═══ -DI (minus_di) ═══
+Source: Right-side axis of the ADX/DMI indicator panel only.
+Look for a labeled box showing "-DI" — it is typically RED e.g. "27.52" or "34.5768".
+Never use the header line.
+IMPORTANT: The -DI box is RED and labeled "-DI". The +DI box is CYAN/BLUE and labeled "+DI". Do not swap them regardless of which value is larger.
+
+═══ RSI ═══
+Source: Right-side axis of the RSI indicator panel only.
+Look for a labeled box showing "RSI" or "WILDER RSI" e.g. purple box "37.81" or red box "41.32".
+Do not return the 50.0 midline value.
+
+═══ EP (Extreme Point) ═══
+Source: Visual analysis of the ADX/DMI panel.
+Find the most recent candle where -DI crossed above +DI (bearish crossover) — return the LOW of that candle.
+Find the most recent candle where +DI crossed above -DI (bullish crossover) — return the HIGH of that candle.
+Return null if you cannot identify the crossover candle with confidence.
 
 Return ONLY the JSON object with no other text.`,
           messages: [{
